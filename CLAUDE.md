@@ -6,7 +6,7 @@ PropIQ is an AI-powered real estate proposal analyser built as the main project 
 
 ## Implementation spec
 
-Always read `.claude/specs/propiq-spec.md` before starting work. It contains the full phased task breakdown, data model, and risk notes.
+Always read `SPEC.md` before starting work. It contains the full phased task breakdown, data model, and risk notes.
 
 ## Architecture overview
 
@@ -58,7 +58,7 @@ Never commit `.env`. The Vite proxy ensures `ANTHROPIC_API_KEY` is never bundled
 
 ## Daily workflow
 
-1. Read `.claude/specs/propiq-spec.md` — check which tasks are next
+1. Read `SPEC.md` — check which tasks are next
 2. Implement the task
 3. Mark the task complete in the spec (`- [x]`)
 4. Commit

@@ -92,4 +92,4 @@ npm run dev
 
 ## Implementation spec
 
-See [`.claude/specs/propiq-spec.md`](.claude/specs/propiq-spec.md) for the full phased task breakdown.
+See [`SPEC.md`](SPEC.md) for the full phased task breakdown.
