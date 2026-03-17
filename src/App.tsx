@@ -1,121 +1,64 @@
+// IMPORTANT: The Gemini API key must be named VITE_GEMINI_API_KEY in .env
+// so Vite exposes it to the browser via import.meta.env. Plain GEMINI_API_KEY
+// is NOT accessible in client code.
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY as string)
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+
+export default function App() {
+  const [prompt, setPrompt] = useState('')
+  const [response, setResponse] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit() {
+    const trimmed = prompt.trim()
+    if (!trimmed) return
+
+    setLoading(true)
+    setError('')
+    setResponse('')
+
+    try {
+      const result = await model.generateContent(trimmed)
+      setResponse(result.response.text())
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(`Gemini request failed: ${message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="container">
+      <h1>PropIQ</h1>
 
-      <div className="ticks"></div>
+      <label htmlFor="prompt-input" className="field-label">
+        Ask Gemini anything
+      </label>
+      <textarea
+        id="prompt-input"
+        rows={6}
+        value={prompt}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+        className="prompt-input"
+      />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <button
+        onClick={handleSubmit}
+        disabled={loading || !prompt.trim()}
+        className="submit-btn"
+      >
+        {loading ? 'Thinking…' : 'Submit'}
+      </button>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {error && <p className="error-msg">{error}</p>}
+
+      {response && <pre className="response-box">{response}</pre>}
+    </div>
   )
 }
-
-export default App
