@@ -27,6 +27,7 @@ export interface Neighborhood {
   transport_links: string | null
   nearby_amenities: string | null
   neighbourhood_notes: string | null
+  ai_summary: string | null
 }
 
 /** Used for insert operations — omits server-generated fields. */
@@ -45,6 +46,7 @@ export const neighborhoodSchema = z.object({
   transport_links: z.string().nullable().default(null),
   nearby_amenities: z.string().nullable().default(null),
   neighbourhood_notes: z.string().nullable().default(null),
+  ai_summary: z.string().nullable().default(null),
 })
 
 /**
@@ -53,4 +55,3 @@ export const neighborhoodSchema = z.object({
  */
 export const neighborhoodInsertSchema = neighborhoodSchema
 
-export type NeighborhoodExtraction = z.infer<typeof neighborhoodSchema>
