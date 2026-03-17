@@ -9,3 +9,4 @@
 export * from './neighborhood'
 export * from './project'
 export * from './unit'
+export * from './searchFeedback'

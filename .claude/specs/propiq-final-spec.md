@@ -99,15 +99,15 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 **Goal**: Fill missing infrastructure before building screens.
 
-- [ ] A.1 Create `src/prompts/neighborhoodResearchCriteria.ts` — prompt for extracting and
+- [x] A.1 Create `src/prompts/neighborhoodResearchCriteria.ts` — prompt for extracting and
       enriching neighborhood data (transport, demographics, buyer profile, area character)
-- [ ] A.2 Write `supabase/migrations/002_search_feedback.sql` — `search_feedback` table:
+- [x] A.2 Write `supabase/migrations/002_search_feedback.sql` — `search_feedback` table:
       `id`, `created_at`, `query_text`, `result_project_id` (FK → projects), `result_unit_id`
       (FK nullable → units), `match_type` ('matching'|'non_matching'), `rating` ('up'|'down'),
       `note` (text nullable)
 - [ ] A.3 Run migration: `node tools/scripts/migrate.mjs`
-- [ ] A.4 Add `SearchFeedback` type + Zod schema to `src/types/`
-- [ ] A.5 Add `saveFeedback` service to `src/services/`
+- [x] A.4 Add `SearchFeedback` type + Zod schema to `src/types/`
+- [x] A.5 Add `saveFeedback` service to `src/services/`
 
 ---
 
@@ -115,15 +115,15 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 **Goal**: Full CRUD for neighborhoods with AI-assisted add/edit.
 
-- [ ] B.1 Write `src/services/extractNeighborhood.ts` — Gemini call using
+- [x] B.1 Write `src/services/extractNeighborhood.ts` — Gemini call using
       `NEIGHBORHOOD_RESEARCH_CRITERIA`, returns validated `NeighborhoodInsert`
-- [ ] B.2 Build `src/pages/NeighborhoodsPage.tsx` — table with name, city, target buyers,
+- [x] B.2 Build `src/pages/NeighborhoodsPage.tsx` — table with name, city, target buyers,
       project count columns; "Add Neighborhood" button
-- [ ] B.3 Build `src/components/NeighborhoodForm.tsx` — single textarea + "Research with AI"
+- [x] B.3 Build `src/components/NeighborhoodForm.tsx` — single textarea + "Research with AI"
       button → shows extracted fields in editable form → "Save" button
-- [ ] B.4 Wire edit: clicking a row opens `NeighborhoodForm` pre-populated with existing data
+- [x] B.4 Wire edit: clicking a row opens `NeighborhoodForm` pre-populated with existing data
       serialised as text; Gemini re-extracts; user confirms before update
-- [ ] B.5 Add route `/neighborhoods` to `App.tsx`
+- [x] B.5 Add route `/neighborhoods` to `App.tsx`
 
 ---
 
@@ -199,8 +199,8 @@ search_feedback (standalone — stores user ratings on opportunity search result
 ## Progress
 
 - [x] Phase 1 / Data Foundation (schema, types, services) — COMPLETE
-- [ ] Phase A — Foundation gaps
-- [ ] Phase B — Neighborhoods screen
+- [x] Phase A — Foundation gaps (migration A.3 still needs running)
+- [x] Phase B — Neighborhoods screen
 - [ ] Phase C — Projects screen
 - [ ] Phase D — Units screen
 - [ ] Phase E — Opportunity Search
