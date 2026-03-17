@@ -28,7 +28,7 @@ neighborhoods  (1)
 - [x] 1.2 Run migration in Supabase dashboard SQL editor
 - [x] 1.3 Create `src/types/` — TypeScript interfaces for `Neighborhood`, `Project`, `Unit` derived from field configs
 - [x] 1.4 Add Zod schemas to `src/types/` for validating Gemini extraction output
-- [ ] 1.5 Expand `src/services/supabase.ts` — CRUD helpers: `getProjects`, `getProject`, `saveProject`, `getUnits`, `saveUnit`, `getNeighborhoods`, `saveNeighborhood`
+- [x] 1.5 Expand `src/services/supabase.ts` — CRUD helpers: `getProjects`, `getProject`, `saveProject`, `getUnits`, `saveUnit`, `getNeighborhoods`, `saveNeighborhood`
 
 ---
 
