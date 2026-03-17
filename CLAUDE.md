@@ -16,6 +16,64 @@ Always read `SPEC.md` before starting work. It contains the full phased task bre
 
 **Phase 3:** Add a Python FastAPI service to handle all AI extraction and NL query work. Next.js calls FastAPI; FastAPI calls Claude and Supabase.
 
+## Documentation structure
+
+**This file (CLAUDE.md)**: Always loaded — contains core principles and PropIQ-specific context. Keep it concise.
+
+**Detailed guides** (referenced, not auto-loaded — consult when needed):
+- `.claude/docs/CODE_PRINCIPLES.md` — Code quality standards (hard limits, patterns)
+- `.claude/docs/FILE_PRINCIPLES.md` — File organization (structure, naming)
+- `.claude/docs/AGENT_GUIDE.md` — Base patterns for agent delegation
+- `.claude/docs/ARCHITECTURE_GUIDE.md` — Project architecture and patterns
+- `.claude/docs/CODEBASE_MAP.md` — File locations, function tables, navigation
+- `.claude/docs/BUSINESS_LOGIC.md` — Domain-specific business rules and formulas
+- `.claude/docs/FRONTEND_DESIGN_SYSTEM.md` — UI patterns and styling
+- `.claude/docs/DELEGATE_GUIDE.md` — Agent delegation strategies
+- `.claude/docs/DEBUG_GUIDE.md` — Systematic debugging methodologies
+- `.claude/docs/POC_GUIDE.md` — Proof of concept patterns
+- `.claude/docs/VERIFY_GUIDE.md` — Evaluate reviewer feedback critically
+- `.claude/docs/KIRO_TASK_EXECUTION_GUIDE.md` — Development workflow for Kiro specs
+
+## Available commands
+
+| Command | Purpose |
+|---------|---------|
+| `/start` | Load essential project context (principles, architecture) |
+| `/spec` | Create strategic implementation plan (saves to `.claude/specs/`) |
+| `/delegate` | Delegate tasks to agents, keeping context clean |
+| `/orchestrate` | Full workflow: analyze → implement → test → document → review |
+| `/debug` | First-principles debugging for complex issues |
+| `/poc` | Proof of concept to validate technical feasibility |
+| `/commit` | Smart git commits with logical grouping |
+| `/docs-update` | Analyze and update documentation |
+| `/test` | Create QA test request documents |
+| `/report` | Generate reviewer briefing documents |
+| `/verify` | Evaluate reviewer feedback critically |
+| `/kiro` | Execute tasks from Kiro implementation plans |
+| `/kiro-create` | Create a new Kiro spec (requirements.md, design.md, tasks.md) |
+| `/kiro-review` | Review completed Kiro tasks against specifications |
+
+## Available expert agents
+
+See `.claude/docs/DELEGATE_GUIDE.md` for detailed usage patterns.
+
+| Agent | Purpose | When to use |
+|-------|---------|-------------|
+| `strategic-planner` | Implementation planning | Start of complex features |
+| `senior-dev-consultant` | Expert advice | Architecture decisions, complex debugging |
+| `senior-dev-implementer` | Production code | Complex features needing senior-level quality |
+| `task-completion-validator` | Verify completeness | Before marking tasks done |
+| `investigator` | Deep research | Bug investigation, API research |
+| `codebase-analyzer` | Understand structure | Before adding new modules |
+| `docs-explorer` | Documentation research | Library/API documentation lookup |
+| `test-generator` | Create test suites | After implementing features |
+| `docs-maintainer` | Update documentation | After significant changes |
+
+**Quick reference:**
+- Use `codebase-analyzer` instead of opening many files
+- Use `docs-explorer` instead of loading extensive docs
+- Run multiple agents in parallel when tasks are independent
+
 ## Key files
 
 | File | Purpose |
@@ -46,6 +104,30 @@ This contract must stay stable across phases — only the call site changes. Val
 - Services are plain async functions, not classes
 - Co-located types — `Proposal` type lives next to the Supabase service
 
+## Core principles
+
+### Ask before assuming
+
+- When instructions are ambiguous, ask for clarification rather than assuming
+- When multiple interpretations are possible, request specific details
+- Clarify first, implement second
+
+### Code quality (see CODE_PRINCIPLES.md for details)
+
+| Rule | Limit |
+|------|-------|
+| Function length | Max 50 lines |
+| Parameters | Max 4 (use object for more) |
+| Nesting depth | Max 4 levels |
+| File length | Max 300 lines |
+
+### File organization (see FILE_PRINCIPLES.md for details)
+
+- One responsibility per file
+- Group by feature, not type
+- Consistent naming conventions
+- Temp files in `tools/tmp/` only
+
 ## Environment variables
 
 ```
@@ -61,4 +143,15 @@ Never commit `.env`. The Vite proxy ensures `ANTHROPIC_API_KEY` is never bundled
 1. Read `SPEC.md` — check which tasks are next
 2. Implement the task
 3. Mark the task complete in the spec (`- [x]`)
-4. Commit
+4. Run `/commit`
+
+**Commit rules:** Never add `Co-Authored-By` lines to commit messages.
+
+## Documentation maintenance
+
+After implementing significant changes:
+- Pattern used multiple times → update architecture guide
+- Bug fixed with learnings → document in debugging guide
+- New conventions emerge → update relevant guides
+
+Run `/docs-update check` to analyse if documentation needs updating.

@@ -1,19 +1,22 @@
 ---
-name: commit
-description: Stage and commit changes with a conventional commit message — reviews diff, proposes message, waits for approval
+argument-hint: [instructions] (optional: "exclude X", "only Y", "with message 'Z'", specific files)
+description: Smart commit with logical grouping
 ---
 
-Review the current git changes and create a commit.
+# Commit Command
 
-1. Run `git status` and `git diff` (both staged and unstaged) to understand what changed
-2. Draft a commit message following conventional commits:
-   - `feat:` new feature
-   - `fix:` bug fix  
-   - `chore:` setup, config, tooling
-   - `refactor:` restructuring without behaviour change
-   - Subject line under 72 characters, keep it simple
-   - No Co-Authored-By lines
-3. Show me the proposed commit message and wait for my approval
-4. On approval, stage relevant files and commit
+## Instructions
 
-If $ARGUMENTS is provided, use it as a hint for the commit message subject.
+If you haven't read `.claude/docs/COMMIT_GUIDELINES.md` in this session, read it first.
+
+## Arguments
+
+$ARGUMENTS - Optional instructions for filtering/customizing the commit.
+
+## Task
+
+1. Run git status to see all changes
+2. Apply any user instructions from $ARGUMENTS
+3. Group changes logically per the guidelines
+4. Create commits with clear messages
+5. Report what was committed and what was skipped
