@@ -39,7 +39,6 @@ export interface Project {
   currency: string | null
   price_sqm: number | null
   price_date: string | null
-  gross_yield: number | null
   // Payment schedule — jsonb deserialized to typed objects
   payment_schedule: PaymentInstallment[] | null
   // Notes
@@ -85,7 +84,6 @@ export const projectSchema = z.object({
   currency: z.string().nullable().default(null),
   price_sqm: z.number().nullable().default(null),
   price_date: z.string().nullable().default(null),
-  gross_yield: z.number().nullable().default(null),
   // Payment schedule
   payment_schedule: z.array(paymentInstallmentSchema).nullable().default(null),
   // Notes

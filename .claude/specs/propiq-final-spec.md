@@ -131,15 +131,15 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 **Goal**: Full CRUD for projects with AI-assisted add/edit.
 
-- [ ] C.1 Write `src/services/extractProject.ts` — Gemini call using `EXTRACTION_RULES`,
+- [x] C.1 Write `src/services/extractProject.ts` — Gemini call using `EXTRACTION_RULES`,
       returns `{ neighborhood?: NeighborhoodInsert, project: ProjectInsert }` validated with Zod.
       If neighborhood is extracted and not yet in DB → prompt user to save it first
-- [ ] C.2 Build `src/pages/ProjectsPage.tsx` — sortable table with key columns;
+- [x] C.2 Build `src/pages/ProjectsPage.tsx` — sortable table with key columns;
       "Add Project" button; row click → project detail
-- [ ] C.3 Build `src/components/ProjectForm.tsx` — single textarea + "Extract with AI" button
+- [x] C.3 Build `src/components/ProjectForm.tsx` — single textarea + "Extract with AI" button
       → review extracted fields in editable form → "Save" button
-- [ ] C.4 Wire edit: same `ProjectForm` pre-populated; Gemini re-extracts on re-submit
-- [ ] C.5 Add route `/projects` to `App.tsx`
+- [x] C.4 Wire edit: same `ProjectForm` pre-populated; Gemini re-extracts on re-submit
+- [x] C.5 Add route `/projects` to `App.tsx`
 
 ---
 
@@ -201,7 +201,7 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - [x] Phase 1 / Data Foundation (schema, types, services) — COMPLETE
 - [x] Phase A — Foundation gaps (migration A.3 still needs running)
 - [x] Phase B — Neighborhoods screen
-- [ ] Phase C — Projects screen
+- [x] Phase C — Projects screen
 - [ ] Phase D — Units screen
 - [ ] Phase E — Opportunity Search
 - [ ] Phase F — Navigation + Polish
