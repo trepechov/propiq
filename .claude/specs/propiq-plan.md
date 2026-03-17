@@ -24,8 +24,8 @@ neighborhoods  (1)
 
 **Goal**: Database ready. TypeScript types and Supabase services in place. Nothing visible yet.
 
-- [ ] 1.1 Write `supabase/migrations/001_schema.sql` — three tables with FK relationships, indexes on `project_id`, `neighborhood_id`, `status`
-- [ ] 1.2 Run migration in Supabase dashboard SQL editor
+- [x] 1.1 Write `supabase/migrations/001_schema.sql` — three tables with FK relationships, indexes on `project_id`, `neighborhood_id`, `status`
+- [x] 1.2 Run migration in Supabase dashboard SQL editor
 - [ ] 1.3 Create `src/types/` — TypeScript interfaces for `Neighborhood`, `Project`, `Unit` derived from field configs
 - [ ] 1.4 Add Zod schemas to `src/types/` for validating Gemini extraction output
 - [ ] 1.5 Expand `src/services/supabase.ts` — CRUD helpers: `getProjects`, `getProject`, `saveProject`, `getUnits`, `saveUnit`, `getNeighborhoods`, `saveNeighborhood`
