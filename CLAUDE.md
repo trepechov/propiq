@@ -90,7 +90,7 @@ See `.claude/docs/DELEGATE_GUIDE.md` for detailed usage patterns.
 Gemini must return a JSON object with these fields (null for unknown):
 
 ```
-title, location, developer, price_sqm, gross_yield,
+title, location, developer, price_sqm,
 completion_date (ISO 8601), payment_plan, currency
 ```
 

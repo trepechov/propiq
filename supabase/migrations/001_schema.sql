@@ -94,7 +94,6 @@ CREATE TABLE projects (
   currency         text,
   price_sqm        numeric,
   price_date       date,
-  gross_yield      numeric,     -- stored as percentage, e.g. 7.5 for 7.5%
 
   -- Payment schedule — array of { percentage: number, trigger: string } objects
   payment_schedule jsonb,

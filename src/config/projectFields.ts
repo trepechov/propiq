@@ -137,14 +137,6 @@ export const projectFields: ProjectField[] = [
       'ISO 8601 format (YYYY-MM-DD). Prices change over time — this anchors the figure to a point in time. ' +
       'Use the document date, email date, or publication date if explicit.',
   },
-  {
-    key: 'gross_yield',
-    label: 'Gross Yield',
-    type: 'percent',
-    unit: '%',
-    required: false,
-    extractionHint: 'Projected annual gross rental yield as a percentage (e.g. 7.5 for 7.5%).',
-  },
 
   // ── Payment ────────────────────────────────────────────────────────────────
   {

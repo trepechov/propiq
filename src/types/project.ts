@@ -97,4 +97,3 @@ export const projectSchema = z.object({
  */
 export const projectInsertSchema = projectSchema
 
-export type ProjectExtraction = z.infer<typeof projectSchema>

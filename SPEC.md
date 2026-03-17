@@ -52,10 +52,9 @@ title        text                  -- auto-generated or user-set label
 location     text
 developer    text
 price_sqm    numeric
-gross_yield  numeric               -- percent
 completion_date date
 payment_plan text
-currency     text default 'USD'
+currency     text default 'EUR'
 notes        text                  -- user freeform notes
 ```
 
