@@ -1,95 +1,73 @@
-# PropIQ
+# React + TypeScript + Vite
 
-AI-powered real estate proposal analyser.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Paste raw proposal text (emails, PDFs) and PropIQ extracts structured fields — location, developer, price/sqm, gross yield, completion date, payment plan. Proposals are saved and shown in a sortable comparison table. Ask natural language questions like *"which has the best yield for a 5-year hold?"*
+Currently, two official plugins are available:
 
----
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Features
+## React Compiler
 
-- **AI extraction** — paste any raw proposal text; Claude returns structured JSON
-- **Editable review** — confirm or correct extracted fields before saving
-- **Comparison table** — sortable by any field across all saved proposals
-- **Natural language queries** — ask questions over your saved proposals
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
----
+## Expanding the ESLint configuration
 
-## Stack evolution
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-| Phase | Stack | Status |
-|-------|-------|--------|
-| 1 | React + Vite + Supabase + Claude API via Vite proxy | Planned |
-| 2 | Next.js App Router — Claude + Supabase move server-side | Planned |
-| 3 | + Python FastAPI — handles all AI extraction and NL queries | Planned |
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
----
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-## Project structure (Phase 1 target)
-
-```
-propiq/
-├── src/
-│   ├── components/
-│   │   ├── ProposalInput.tsx      # Paste area + Extract button
-│   │   ├── ProposalReview.tsx     # Editable extracted fields form
-│   │   ├── ProposalTable.tsx      # Sortable comparison table
-│   │   └── NLQueryBar.tsx         # Natural language question input
-│   ├── services/
-│   │   ├── extractProposal.ts     # Claude extraction call
-│   │   ├── queryProposals.ts      # Claude NL query call
-│   │   └── supabase.ts            # Supabase client + CRUD
-│   ├── types/
-│   │   └── proposal.ts            # Proposal type + Zod schema
-│   └── App.tsx
-├── supabase/
-│   └── migrations/
-│       └── 001_proposals.sql
-├── .env.example
-└── vite.config.ts                 # Includes /api proxy for Claude
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
----
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-## Data model
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-```sql
-id              uuid primary key default gen_random_uuid()
-created_at      timestamptz default now()
-raw_text        text
-title           text
-location        text
-developer       text
-price_sqm       numeric
-gross_yield     numeric        -- percent
-completion_date date
-payment_plan    text
-currency        text default 'USD'
-status          text default 'watching'  -- watching | shortlisted | rejected
-notes           text
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
----
-
-## Getting started
-
-```bash
-# Install dependencies
-npm install
-
-# Copy env vars
-cp .env.example .env
-# Fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, ANTHROPIC_API_KEY
-
-# Run Supabase migration
-npx supabase db push
-
-# Start dev server
-npm run dev
-```
-
----
-
-## Implementation spec
-
-See [`SPEC.md`](SPEC.md) for the full phased task breakdown.
