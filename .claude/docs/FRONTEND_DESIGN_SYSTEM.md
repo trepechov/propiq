@@ -1,6 +1,6 @@
 # Frontend Design System
 
-> **Purpose**: UI patterns, component conventions, and styling standards for consistent frontend development.
+> **Purpose**: UI patterns, component conventions, and styling standards for PropIQ.
 >
 > **Related Docs**:
 > - `ARCHITECTURE_GUIDE.md` - System design and patterns
@@ -9,295 +9,101 @@
 
 ---
 
-## How to Use This File
+## UI Library
 
-This file documents **frontend-specific patterns and conventions** to ensure UI consistency across the application.
+**MUI v5** (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`)
 
-**IMPORTANT: This is a template.** Sections below contain example values. When customizing for your project:
-1. **REPLACE example values** with your actual design tokens
-2. **ADD your actual components** following the same format
-3. **REMOVE sections that don't apply** to your project
-
-**When to update this file:**
-- After establishing new UI patterns
-- When adding reusable components
-- After defining color/spacing/typography standards
-- When component APIs are finalized
+- Use MUI components for **all UI elements** — do not write custom CSS components where MUI covers the use case.
+- Do not mix MUI with other component libraries (no shadcn/ui, no Radix, no Headless UI).
+- Use MUI's `sx` prop for one-off style overrides; avoid inline `style` props.
+- Use MUI's `theme` for shared tokens (colors, spacing, typography) — do not hardcode hex values.
 
 ---
 
-## Design Tokens
+## Responsive Layout
 
-<!-- CUSTOMIZE: Document your design tokens -->
+Support three breakpoints using MUI's default grid:
 
-### Colors
+| Breakpoint | Width | Target device |
+|------------|-------|---------------|
+| `xs` | < 600px | Mobile |
+| `sm` / `md` | 600–960px | Tablet |
+| `lg` / `xl` | > 960px | Desktop |
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--color-primary` | `#3B82F6` | Primary actions, links |
-| `--color-secondary` | `#6B7280` | Secondary text, borders |
-| `--color-success` | `#10B981` | Success states |
-| `--color-warning` | `#F59E0B` | Warning states |
-| `--color-error` | `#EF4444` | Error states |
-| `--color-background` | `#FFFFFF` | Page background |
-| `--color-surface` | `#F9FAFB` | Card/panel background |
+### Rules
 
-### Typography
+- All pages must be usable on mobile — no horizontal scroll, no hidden content.
+- Use `<Container maxWidth="xl">` as the top-level page wrapper.
+- Use MUI `<Grid>` or `<Stack>` for layout — never raw CSS grid/flexbox for page structure.
+- Tables (`<DataGrid>` or MUI `<Table>`) must horizontally scroll on mobile, not overflow the viewport.
+- Dialogs/drawers for add/edit forms: use `fullScreen` on `xs` breakpoint.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--font-family` | `Inter, system-ui, sans-serif` | Body text |
-| `--font-mono` | `JetBrains Mono, monospace` | Code |
-| `--text-xs` | `0.75rem` | Labels, captions |
-| `--text-sm` | `0.875rem` | Secondary text |
-| `--text-base` | `1rem` | Body text |
-| `--text-lg` | `1.125rem` | Subheadings |
-| `--text-xl` | `1.25rem` | Headings |
+### Breakpoint pattern
 
-### Spacing
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-1` | `0.25rem` | Tight spacing |
-| `--space-2` | `0.5rem` | Default gap |
-| `--space-4` | `1rem` | Section padding |
-| `--space-6` | `1.5rem` | Card padding |
-| `--space-8` | `2rem` | Section margins |
-
----
-
-## Component Patterns
-
-<!-- CUSTOMIZE: Document your reusable component patterns -->
-
-### Button
-
-**Location**: `components/ui/Button.tsx`
-
-**Variants**:
-- `primary` - Main actions
-- `secondary` - Secondary actions
-- `danger` - Destructive actions
-- `ghost` - Tertiary actions
-
-**Usage**:
 ```tsx
-<Button variant="primary" size="md" onClick={handleClick}>
-  Save Changes
-</Button>
-```
+// Responsive columns example
+<Grid container spacing={2}>
+  <Grid item xs={12} md={6} lg={4}>
+    ...
+  </Grid>
+</Grid>
 
-**Props**:
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `variant` | `'primary' \| 'secondary' \| 'danger' \| 'ghost'` | `'primary'` | Visual style |
-| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Button size |
-| `disabled` | `boolean` | `false` | Disable interactions |
-| `loading` | `boolean` | `false` | Show loading spinner |
-
-### Card
-
-**Location**: `components/ui/Card.tsx`
-
-**Usage**:
-```tsx
-<Card>
-  <CardHeader>Title</CardHeader>
-  <CardContent>Content here</CardContent>
-</Card>
-```
-
-### Modal
-
-**Location**: `components/ui/Modal.tsx`
-
-**Usage**:
-```tsx
-<Modal isOpen={isOpen} onClose={handleClose} title="Confirm Action">
-  <p>Are you sure?</p>
-  <ModalActions>
-    <Button variant="ghost" onClick={handleClose}>Cancel</Button>
-    <Button variant="primary" onClick={handleConfirm}>Confirm</Button>
-  </ModalActions>
-</Modal>
+// Responsive dialog
+<Dialog fullScreen={isMobile} ...>
 ```
 
 ---
 
-## Form Patterns
+## Page Layout Pattern
 
-<!-- CUSTOMIZE: Document form conventions -->
-
-### Form Layout
+Every page follows this structure:
 
 ```tsx
-<Form onSubmit={handleSubmit}>
-  <FormField>
-    <Label htmlFor="name">Name</Label>
-    <Input id="name" {...register('name')} />
-    <FieldError>{errors.name?.message}</FieldError>
-  </FormField>
+<Container maxWidth="xl" sx={{ py: 3 }}>
+  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+    <Typography variant="h5">Page Title</Typography>
+    <Button variant="contained">Primary Action</Button>
+  </Stack>
 
-  <FormActions>
-    <Button type="submit">Save</Button>
-  </FormActions>
-</Form>
-```
-
-### Validation Display
-
-- Errors shown below field in red
-- Success state shows green border
-- Required fields marked with asterisk
-
----
-
-## Layout Patterns
-
-<!-- CUSTOMIZE: Document layout conventions -->
-
-### Page Layout
-
-```tsx
-<PageContainer>
-  <PageHeader>
-    <PageTitle>Page Title</PageTitle>
-    <PageActions>
-      <Button>Action</Button>
-    </PageActions>
-  </PageHeader>
-
-  <PageContent>
-    {/* Main content */}
-  </PageContent>
-</PageContainer>
-```
-
-### Grid System
-
-- Use CSS Grid or Flexbox
-- Default gap: `--space-4`
-- Max content width: `1200px`
-- Responsive breakpoints: `sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`
-
----
-
-## State Indicators
-
-<!-- CUSTOMIZE: Document how different states are displayed -->
-
-### Loading States
-
-| Component | Loading Display |
-|-----------|----------------|
-| Button | Spinner replaces text |
-| Table | Skeleton rows |
-| Card | Skeleton content |
-| Page | Full page spinner |
-
-### Empty States
-
-```tsx
-<EmptyState
-  icon={<InboxIcon />}
-  title="No items yet"
-  description="Create your first item to get started"
-  action={<Button>Create Item</Button>}
-/>
-```
-
-### Error States
-
-```tsx
-<ErrorState
-  title="Something went wrong"
-  description={error.message}
-  action={<Button onClick={retry}>Try Again</Button>}
-/>
+  {/* Main content — table, cards, etc. */}
+</Container>
 ```
 
 ---
 
-## Accessibility Standards
+## Component Conventions
 
-<!-- CUSTOMIZE: Document accessibility requirements -->
+### Tables
 
-### Requirements
+- Use MUI `<Table>` with `<TableContainer component={Paper}>` for data tables.
+- Add `stickyHeader` for long lists.
+- Rows are clickable for edit — use `hover` cursor and `TableRow hover`.
+- On mobile, wrap `TableContainer` with `overflow: 'auto'` to enable horizontal scroll.
 
-- All interactive elements keyboard accessible
-- Focus visible indicators on all focusable elements
-- Color contrast ratio minimum 4.5:1 for text
-- Form fields have associated labels
-- Images have alt text
-- ARIA labels for icon-only buttons
+### Forms (Add / Edit)
 
-### Focus Management
+- Open in a MUI `<Dialog>` (not a separate page).
+- `fullScreen` on mobile (`xs` breakpoint).
+- Single `<TextField multiline>` for AI input; extracted fields rendered as individual `<TextField>` components below.
+- Action buttons: Cancel (outlined) + Save (contained) — right-aligned in `<DialogActions>`.
 
-- Modal opens: focus trapped inside
-- Modal closes: focus returns to trigger
-- Tab order follows visual order
+### Feedback / Status
 
----
-
-## Animation Guidelines
-
-<!-- CUSTOMIZE: Document animation conventions -->
-
-| Animation | Duration | Easing | Usage |
-|-----------|----------|--------|-------|
-| Fade | `150ms` | `ease-out` | Tooltips, dropdowns |
-| Slide | `200ms` | `ease-in-out` | Panels, modals |
-| Scale | `150ms` | `ease-out` | Buttons, cards |
-
-**Principles**:
-- Subtle over flashy
-- Respect `prefers-reduced-motion`
-- No animations > 300ms for UI elements
+- Loading: `<CircularProgress>` centered in the content area.
+- Errors: MUI `<Alert severity="error">` below the triggering element.
+- Success toasts: MUI `<Snackbar>` with `<Alert severity="success">`, auto-hide 3 s.
+- Empty state: centered `<Typography color="text.secondary">` with an action button.
 
 ---
 
-## Dark Mode (if applicable)
+## MUI Installation
 
-<!-- CUSTOMIZE: Document dark mode conventions -->
-
-### Color Mapping
-
-| Light Mode | Dark Mode |
-|------------|-----------|
-| `--color-background: #FFFFFF` | `--color-background: #111827` |
-| `--color-surface: #F9FAFB` | `--color-surface: #1F2937` |
-| `--color-text: #111827` | `--color-text: #F9FAFB` |
-
-### Implementation
-
-```tsx
-// Use CSS variables, theme toggles automatically
-<div className="bg-background text-foreground">
+```bash
+npm install @mui/material @mui/icons-material @emotion/react @emotion/styled
 ```
 
----
-
-## Icon System
-
-<!-- CUSTOMIZE: Document icon conventions -->
-
-**Icon Library**: [e.g., Lucide React, Heroicons]
-
-**Sizes**:
-- `sm`: 16px - Inline with text
-- `md`: 20px - Buttons, default
-- `lg`: 24px - Headers, emphasis
-
-**Usage**:
-```tsx
-import { Plus, Trash, Edit } from 'lucide-react';
-
-<Button>
-  <Plus className="w-5 h-5 mr-2" />
-  Add Item
-</Button>
-```
+Wrap the app in `<ThemeProvider>` and `<CssBaseline>` in `main.tsx`.
 
 ---
 
-*This document ensures consistent UI patterns across the frontend. Update when patterns evolve.*
+*Update this file when new UI patterns are established or component APIs are finalized.*
