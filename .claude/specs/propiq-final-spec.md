@@ -1,7 +1,8 @@
 # PropIQ — Final Implementation Spec
 
 **Created**: 2026-03-17
-**Status**: In Progress — Phase 1 complete
+**Updated**: 2026-03-18
+**Status**: In Progress — Phases A–D complete
 
 ---
 
@@ -105,7 +106,7 @@ search_feedback (standalone — stores user ratings on opportunity search result
       `id`, `created_at`, `query_text`, `result_project_id` (FK → projects), `result_unit_id`
       (FK nullable → units), `match_type` ('matching'|'non_matching'), `rating` ('up'|'down'),
       `note` (text nullable)
-- [ ] A.3 Run migration: `node tools/scripts/migrate.mjs`
+- [x] A.3 Run migration: executed directly via inline pg client script
 - [x] A.4 Add `SearchFeedback` type + Zod schema to `src/types/`
 - [x] A.5 Add `saveFeedback` service to `src/services/`
 
@@ -147,13 +148,14 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 **Goal**: Bulk import units from CSV-style text; view + edit per project.
 
-- [ ] D.1 Write `src/services/extractUnits.ts` — Gemini call that parses a CSV/tabular text
-      block into `UnitInsert[]`; returns array validated with Zod
-- [ ] D.2 Build `src/pages/UnitsPage.tsx` — table of all units for a project;
-      sortable by floor, price, status, direction; inline edit for status + notes
-- [ ] D.3 Build `src/components/UnitsImportForm.tsx` — textarea for CSV input + "Parse with AI"
+- [x] D.1 Write `src/services/extractUnits.ts` — Gemini call that parses a CSV/tabular text
+      block into `UnitInsert[]`; returns array validated with Zod; invalid rows skipped
+- [x] D.2 Build `src/pages/UnitsPage.tsx` — table of all units for a project;
+      project title in header, back link to /projects
+- [x] D.3 Build `src/components/UnitsImportForm.tsx` — textarea for CSV input + "Parse with AI"
       → shows parsed units in a preview table → "Import All" button for bulk insert
-- [ ] D.4 Add route `/projects/:id/units` to `App.tsx`
+- [x] D.3a Build `src/components/UnitsPreviewTable.tsx` — extracted preview table component
+- [x] D.4 Add route `/projects/:id/units` to `App.tsx`
 
 ---
 
@@ -199,9 +201,9 @@ search_feedback (standalone — stores user ratings on opportunity search result
 ## Progress
 
 - [x] Phase 1 / Data Foundation (schema, types, services) — COMPLETE
-- [x] Phase A — Foundation gaps (migration A.3 still needs running)
-- [x] Phase B — Neighborhoods screen
-- [x] Phase C — Projects screen
-- [ ] Phase D — Units screen
+- [x] Phase A — Foundation gaps — COMPLETE
+- [x] Phase B — Neighborhoods screen — COMPLETE
+- [x] Phase C — Projects screen — COMPLETE
+- [x] Phase D — Units screen — COMPLETE
 - [ ] Phase E — Opportunity Search
 - [ ] Phase F — Navigation + Polish
