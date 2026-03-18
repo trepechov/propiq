@@ -14,6 +14,9 @@ import { z } from 'zod'
 import { EXTRACTION_RULES } from '../prompts/extractionRules'
 import { projectInsertSchema, neighborhoodInsertSchema } from '../types'
 import type { NeighborhoodInsert } from '../types'
+import type { ExtractionMeta } from './extractNeighborhood'
+
+export type { ExtractionMeta }
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY as string)
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
@@ -61,6 +64,7 @@ export interface ExtractProjectResult {
   /** Present only if neighbourhood data was found and passed validation. */
   neighborhood?: NeighborhoodInsert
   project: ExtractedProject
+  meta: ExtractionMeta
 }
 
 /**
@@ -73,17 +77,24 @@ export interface ExtractProjectResult {
 export async function extractProject(rawText: string): Promise<ExtractProjectResult> {
   const prompt = `${EXTRACTION_RULES}\n${RESPONSE_SHAPE_INSTRUCTIONS}\n## Raw Text\n\n${rawText}`
 
+  const startMs = performance.now()
+
   let responseText: string
+  let tokens = 0
   try {
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: 'application/json' },
     })
     responseText = result.response.text()
+    tokens = result.response.usageMetadata?.totalTokenCount ?? 0
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     throw new Error(`Gemini request failed: ${message}`)
   }
+
+  const durationMs = performance.now() - startMs
+  const meta: ExtractionMeta = { durationMs, tokens, sources: [] }
 
   let parsed: unknown
   try {
@@ -107,13 +118,14 @@ export async function extractProject(rawText: string): Promise<ExtractProjectRes
   }
 
   if (!raw.neighborhood) {
-    return { project: projectValidation.data }
+    return { project: projectValidation.data, meta }
   }
 
   const neighborhoodValidation = neighborhoodInsertSchema.safeParse(raw.neighborhood)
 
   return {
     project: projectValidation.data,
+    meta,
     ...(neighborhoodValidation.success ? { neighborhood: neighborhoodValidation.data } : {}),
   }
 }
