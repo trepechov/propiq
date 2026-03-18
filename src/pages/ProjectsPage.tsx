@@ -1,10 +1,11 @@
 /**
  * Projects listing page — displays all saved projects in a table.
  * Users can add new projects or edit existing ones via a dialog.
- * Each row links to the Units screen for that project (stub link).
+ * Each row links to the Units screen for that project.
  */
 
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -41,6 +42,8 @@ function formatDate(value: string | null): string {
 }
 
 export default function ProjectsPage() {
+  const navigate = useNavigate()
+
   const [projects, setProjects]         = useState<Project[]>([])
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
   const [loading, setLoading]           = useState(true)
@@ -156,9 +159,7 @@ export default function ProjectsPage() {
                       <Button
                         size="small"
                         variant="outlined"
-                        onClick={(e) => { e.stopPropagation() }}
-                        href={`/projects/${p.id}/units`}
-                        component="a"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/projects/${p.id}/units`) }}
                       >
                         Units
                       </Button>

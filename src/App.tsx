@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, Link as RouterLink } from 'react-router-dom'
 import { AppBar, Button, Toolbar, Typography } from '@mui/material'
 import NeighborhoodsPage from './pages/NeighborhoodsPage'
 import ProjectsPage from './pages/ProjectsPage'
+import UnitsPage from './pages/UnitsPage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/neighborhoods" replace />} />
         <Route path="/neighborhoods" element={<NeighborhoodsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:id/units" element={<UnitsPage />} />
       </Routes>
     </>
   )
