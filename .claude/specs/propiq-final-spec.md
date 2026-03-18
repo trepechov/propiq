@@ -163,15 +163,18 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 **Goal**: Natural language opportunity search with structured results + user feedback loop.
 
-- [ ] E.1 Write `src/services/searchOpportunities.ts` — loads all projects + available units
+- [x] E.1 Write `src/services/searchOpportunities.ts` — loads all projects + available units
       from Supabase; sends to Gemini with `QUERY_CONTEXT` + `EVALUATION_CRITERIA` + user query;
       parses response into `{ matching: OpportunityResult[], nonMatching: OpportunityResult[] }`
-- [ ] E.2 Define `OpportunityResult` type: `{ project: Project, unit?: Unit, reason: string, score?: number }`
-- [ ] E.3 Build `src/pages/SearchPage.tsx` — query input + submit; renders two columns:
+- [x] E.2 Define `OpportunityResult` type: `{ project: Project, unit?: Unit, reason: string, score?: number }`
+- [x] E.3 Build `src/pages/SearchPage.tsx` — query input + submit; renders two columns:
       "Matching (5)" and "Does Not Match (5)"; each card shows project/unit summary + reason
-- [ ] E.4 Build `src/components/FeedbackWidget.tsx` — thumbs up/down + optional note per result;
+- [x] E.4 Build `src/components/FeedbackWidget.tsx` — thumbs up/down + optional note per result;
       calls `saveFeedback` on submit; button state locked after vote
-- [ ] E.5 Add route `/search` to `App.tsx`
+- [x] E.5 Add route `/search` to `App.tsx`
+- [ ] E.6 Feed stored feedback into subsequent searches — load recent `search_feedback` rows
+      from Supabase and inject a summary into the Gemini prompt:
+      "User previously rated these projects UP: X, Y; DOWN: Z" so results improve over time
 
 ---
 
@@ -205,5 +208,5 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - [x] Phase B — Neighborhoods screen — COMPLETE
 - [x] Phase C — Projects screen — COMPLETE
 - [x] Phase D — Units screen — COMPLETE
-- [ ] Phase E — Opportunity Search
+- [ ] Phase E — Opportunity Search (E.1–E.5 done, E.6 pending)
 - [ ] Phase F — Navigation + Polish

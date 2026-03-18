@@ -3,6 +3,7 @@ import { AppBar, Button, Toolbar, Typography } from '@mui/material'
 import NeighborhoodsPage from './pages/NeighborhoodsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import UnitsPage from './pages/UnitsPage'
+import SearchPage from './pages/SearchPage'
 
 export default function App() {
   return (
@@ -18,6 +19,9 @@ export default function App() {
           <Button color="inherit" component={RouterLink} to="/projects">
             Projects
           </Button>
+          <Button color="inherit" component={RouterLink} to="/search">
+            Search
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -26,6 +30,7 @@ export default function App() {
         <Route path="/neighborhoods" element={<NeighborhoodsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:id/units" element={<UnitsPage />} />
+        <Route path="/search" element={<SearchPage />} />
       </Routes>
     </>
   )
