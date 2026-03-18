@@ -208,5 +208,5 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - [x] Phase B — Neighborhoods screen — COMPLETE
 - [x] Phase C — Projects screen — COMPLETE
 - [x] Phase D — Units screen — COMPLETE
-- [ ] Phase E — Opportunity Search (E.1–E.5 done, E.6 pending)
+- [x] Phase E — Opportunity Search — COMPLETE
 - [ ] Phase F — Navigation + Polish
