@@ -4,8 +4,9 @@
  * Workflow:
  *  1. User pastes raw text about the area.
  *  2. "Research with AI" → Gemini extracts structured fields.
- *  3. User reviews and edits extracted fields.
- *  4. "Save" persists to Supabase via saveNeighborhood / updateNeighborhood.
+ *  3. After completion, a one-line stats caption shows duration, tokens, and sources.
+ *  4. User reviews and edits extracted fields.
+ *  5. "Save" persists to Supabase via saveNeighborhood / updateNeighborhood.
  *
  * When `existing` is provided the form pre-fills with the existing record's
  * data serialised as text so the AI can re-process it.
@@ -22,11 +23,13 @@ import {
   DialogTitle,
   Stack,
   TextField,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material'
 import { extractNeighborhood } from '../services/extractNeighborhood'
 import { saveNeighborhood, updateNeighborhood } from '../services/neighborhoods'
+import type { ExtractionMeta } from '../services/extractNeighborhood'
 import type { Neighborhood, NeighborhoodInsert } from '../types'
 
 interface Props {
@@ -43,6 +46,7 @@ const EMPTY_FIELDS: NeighborhoodInsert = {
   transport_links: null,
   nearby_amenities: null,
   neighbourhood_notes: null,
+  ai_summary: null,
 }
 
 function serializeExisting(n: Neighborhood): string {
@@ -58,6 +62,16 @@ function serializeExisting(n: Neighborhood): string {
     .join('\n')
 }
 
+function formatStats(meta: ExtractionMeta): string {
+  const duration = (meta.durationMs / 1000).toFixed(1)
+  const tokens = meta.tokens.toLocaleString()
+  const sourcePart =
+    meta.sources.length > 0
+      ? ` · ${meta.sources.length} source${meta.sources.length > 1 ? 's' : ''}`
+      : ''
+  return `✓ ${duration}s · ${tokens} tokens${sourcePart}`
+}
+
 export default function NeighborhoodForm({ open, onClose, onSaved, existing }: Props) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('xs'))
@@ -66,6 +80,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
   const [fields, setFields]       = useState<NeighborhoodInsert>(EMPTY_FIELDS)
   const [extracted, setExtracted] = useState(false)
   const [researching, setResearching] = useState(false)
+  const [meta, setMeta]           = useState<ExtractionMeta | null>(null)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState<string | null>(null)
 
@@ -73,6 +88,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
     if (open) {
       setExtracted(false)
       setError(null)
+      setMeta(null)
       if (existing) {
         setRawText(serializeExisting(existing))
         setFields({
@@ -82,6 +98,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
           transport_links:     existing.transport_links,
           nearby_amenities:    existing.nearby_amenities,
           neighbourhood_notes: existing.neighbourhood_notes,
+          ai_summary:          existing.ai_summary ?? null,
         })
         setExtracted(true)
       } else {
@@ -96,10 +113,12 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
     if (!trimmed) return
 
     setResearching(true)
+    setMeta(null)
     setError(null)
     try {
-      const extracted = await extractNeighborhood(trimmed)
-      setFields(extracted)
+      const result = await extractNeighborhood(trimmed)
+      setFields(result.data)
+      setMeta(result.meta)
       setExtracted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'AI extraction failed')
@@ -138,7 +157,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
       onClose={onClose}
       fullScreen={isMobile}
       fullWidth
-      maxWidth="sm"
+      maxWidth="md"
     >
       <DialogTitle>{existing ? 'Edit Neighborhood' : 'Add Neighborhood'}</DialogTitle>
 
@@ -162,6 +181,12 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
           >
             {researching ? 'Researching…' : 'Research with AI'}
           </Button>
+
+          {!researching && meta !== null && (
+            <Alert severity="info" sx={{ py: 0 }}>
+              <Typography variant="caption">{formatStats(meta)}</Typography>
+            </Alert>
+          )}
 
           {error && <Alert severity="error">{error}</Alert>}
 

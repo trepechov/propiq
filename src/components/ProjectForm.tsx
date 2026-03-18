@@ -4,9 +4,10 @@
  * Workflow:
  *  1. User pastes raw proposal text.
  *  2. "Extract with AI" → Gemini extracts project + optional neighborhood fields.
- *  3. If a new neighborhood was extracted, a banner offers to save it first.
- *  4. User reviews extracted fields (editable) and picks a neighborhood.
- *  5. "Save" persists to Supabase via saveProject / updateProject.
+ *  3. After completion, a one-line stats caption shows duration and tokens.
+ *  4. If a new neighborhood was extracted, a banner offers to save it first.
+ *  5. User reviews extracted fields (editable) and picks a neighborhood.
+ *  6. "Save" persists to Supabase via saveProject / updateProject.
  *
  * When `existing` is provided, fields pre-fill and extraction is bypassed.
  */
@@ -22,16 +23,22 @@ import {
   DialogTitle,
   Stack,
   TextField,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material'
 import { extractProject } from '../services/extractProject'
 import { saveProject, updateProject } from '../services/projects'
 import { getNeighborhoods, saveNeighborhood } from '../services/neighborhoods'
+import type { ExtractionMeta } from '../services/extractProject'
 import type { Project, ProjectInsert, Neighborhood, NeighborhoodInsert } from '../types'
 import ProjectFields from './ProjectFields'
 import type { FieldValues } from './ProjectFields'
-import { BuildingStage } from '../config/domain'
+import {
+  PROJECT_FORM_SAMPLE_TEXT,
+  PROJECT_FORM_EMPTY_FIELDS,
+  serializeExistingProject,
+} from './ProjectForm.helpers'
 
 interface Props {
   open: boolean
@@ -40,65 +47,15 @@ interface Props {
   existing?: Project
 }
 
-const SAMPLE_TEXT = [
-  'Project: Synera Residence',
-  'Developer: Bulgarian Properties',
-  'Neighborhood: Манастирски ливади - изток, Sofia',
-  'Stage: Act 14 (construction started)',
-  'Completion: December 2026',
-  'Total floors: 10  |  Total apartments: 95',
-  'Price: 1 850 EUR/sqm (incl. VAT)  |  Price date: March 2026',
-  'Gross yield: 5.2%',
-  'Currency: EUR',
-  'Commission: 2%  |  Source: Bulgarian Properties website',
-  'Payment: 20% on signing, 30% on Act 14, 50% on Act 16',
-  'Notes: South-facing units available. Parking included above 5th floor.',
-].join('\n')
-
-const EMPTY_FIELDS: FieldValues = {
-  neighborhood_id: '',
-  title: '',
-  developer: null,
-  source: null,
-  commission: null,
-  total_apartments: null,
-  total_floors: null,
-  current_stage: BuildingStage.PLANNING,
-  completion_date: null,
-  building_notes: null,
-  currency: null,
-  price_sqm: null,
-  price_date: null,
-  payment_schedule: null,
-  notes: null,
-  ai_summary: null,
-}
-
-function serializeExisting(p: Project): string {
-  const lines = [
-    `Title: ${p.title}`,
-    p.developer       ? `Developer: ${p.developer}`             : null,
-    p.source          ? `Source: ${p.source}`                   : null,
-    p.commission      ? `Commission: ${p.commission}`           : null,
-    p.current_stage   ? `Stage: ${p.current_stage}`             : null,
-    p.completion_date ? `Completion date: ${p.completion_date}` : null,
-    p.price_sqm !== null ? `Price/sqm: ${p.price_sqm} ${p.currency ?? 'EUR'}` : null,
-    p.total_apartments !== null ? `Total apartments: ${p.total_apartments}` : null,
-    p.total_floors !== null ? `Total floors: ${p.total_floors}` : null,
-    p.building_notes  ? `Building notes: ${p.building_notes}`   : null,
-    p.notes           ? `Notes: ${p.notes}`                     : null,
-  ]
-  return lines.filter(Boolean).join('\n')
-}
-
 export default function ProjectForm({ open, onClose, onSaved, existing }: Props) {
   const theme    = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [rawText, setRawText]                 = useState('')
-  const [fields, setFields]                   = useState<FieldValues>(EMPTY_FIELDS)
+  const [fields, setFields]                   = useState<FieldValues>(PROJECT_FORM_EMPTY_FIELDS)
   const [extracted, setExtracted]             = useState(false)
   const [extracting, setExtracting]           = useState(false)
+  const [meta, setMeta]                       = useState<ExtractionMeta | null>(null)
   const [saving, setSaving]                   = useState(false)
   const [error, setError]                     = useState<string | null>(null)
   const [neighborhoods, setNeighborhoods]     = useState<Neighborhood[]>([])
@@ -113,14 +70,15 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
     if (!open) return
     setExtracted(false)
     setError(null)
+    setMeta(null)
     setPendingNeighborhood(null)
     if (existing) {
-      setRawText(serializeExisting(existing))
+      setRawText(serializeExistingProject(existing))
       setFields({ ...existing })
       setExtracted(true)
     } else {
-      setRawText(SAMPLE_TEXT)
-      setFields(EMPTY_FIELDS)
+      setRawText(PROJECT_FORM_SAMPLE_TEXT)
+      setFields(PROJECT_FORM_EMPTY_FIELDS)
     }
   }, [open, existing])
 
@@ -129,11 +87,13 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
     if (!trimmed) return
 
     setExtracting(true)
+    setMeta(null)
     setError(null)
     setPendingNeighborhood(null)
     try {
       const result = await extractProject(trimmed)
       setFields((prev) => ({ ...result.project, neighborhood_id: prev.neighborhood_id } as FieldValues))
+      setMeta(result.meta)
       setExtracted(true)
 
       if (result.neighborhood) {
@@ -220,6 +180,14 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
           >
             {extracting ? 'Extracting…' : 'Extract with AI'}
           </Button>
+
+          {!extracting && meta !== null && (
+            <Alert severity="info" sx={{ py: 0 }}>
+              <Typography variant="caption">
+                ✓ {(meta.durationMs / 1000).toFixed(1)}s · {meta.tokens.toLocaleString()} tokens
+              </Typography>
+            </Alert>
+          )}
 
           {error && <Alert severity="error">{error}</Alert>}
 
