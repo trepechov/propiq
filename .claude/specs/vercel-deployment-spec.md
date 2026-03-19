@@ -1,124 +1,192 @@
 # Vercel Test Deployment Spec
 
 **Created**: 2026-03-19
+**Updated**: 2026-03-19
 **Status**: Planning
 
 ## Overview
 
-Deploy the React+Vite PropIQ app to Vercel's free plan so others can test it after
-Phase F (Authentication) is complete. This is a test/staging deployment, not production.
-The main technical challenge is replacing the dev-only Vite proxy (used to keep the
-Gemini API key off the browser) with a Vercel Serverless Function that does the same
-job in production.
+Deploy the React+Vite PropIQ app to Vercel's free plan for shared testing.
+This is a test deployment — not production. Goal: a public URL for a small
+group of testers.
 
-## Requirements
+GitHub Actions provides a **manual-trigger-only** deployment workflow so
+deploys happen intentionally, not on every commit.
 
-- App accessible at a public Vercel URL (free tier `.vercel.app` domain is fine)
-- Gemini API key never reaches the browser — must stay server-side
-- Supabase connection works in production (env vars set correctly)
-- No code changes to how the client calls `/api/*` — only the proxy implementation changes
-- Simple enough to set up in one session; no CI/CD needed yet
+---
 
-## Technical Approach
+## Key Finding: No Proxy Needed (Simpler Than Originally Planned)
 
-**The proxy problem:**
-`vite.config.ts` proxies `/api → generativelanguage.googleapis.com` in dev only.
-In production, Vite builds static files — no proxy process runs.
+The original spec assumed a Vite proxy was in place for the Gemini API key.
+**It isn't.** The current code uses `VITE_GEMINI_API_KEY` directly in the
+browser via the `@google/generative-ai` SDK. This means:
 
-**The solution — Vercel Serverless Function:**
-Create `api/gemini.ts` (or a catch-all `api/[...path].ts`) at the repo root.
-Vercel auto-deploys any file under `api/` as a serverless function, mounted at the
-same `/api/*` path. The function reads `GEMINI_API_KEY` from Vercel env vars
-(server-side only, no `VITE_` prefix) and forwards the request to Google's API.
-The client code calls `/api/...` identically in dev and production.
+- **Test deployment path**: just set the env vars in Vercel — it works
+- **The key is in the browser bundle** — acceptable for a small test group,
+  not acceptable for public production. Moving it server-side is Phase H.2
+  (optional, deferred).
 
-**Env var split:**
-| Variable | Visibility | Where set |
+---
+
+## Env Vars Required
+
+| Variable | Visibility | Notes |
 |---|---|---|
-| `VITE_SUPABASE_URL` | Public (in client bundle) | Vercel env vars |
-| `VITE_SUPABASE_ANON_KEY` | Public (in client bundle) | Vercel env vars |
-| `GEMINI_API_KEY` | Server-side only (no VITE_ prefix) | Vercel env vars |
-
-**Supabase in production:**
-The Supabase anon key is designed to be public — RLS enforces access control.
-Auth (Phase F) adds RLS, but even before that the anon key exposure is expected
-and safe for a test deployment with no sensitive data.
+| `VITE_SUPABASE_URL` | Client (VITE_ prefix) | Copy from `.env` |
+| `VITE_SUPABASE_ANON_KEY` | Client (VITE_ prefix) | Copy from `.env` |
+| `VITE_GEMINI_API_KEY` | Client (VITE_ prefix) | Acceptable for test; move server-side later |
 
 ---
 
-## Implementation Phases
+## Phase 1 — Vercel Project Setup (one-time, manual)
 
-### Phase 1 — Vercel Serverless Proxy
+**Goal:** Connect the repo to Vercel and configure the project. Done once in
+the Vercel dashboard / CLI — not automated.
 
-**Goal:** Replace the Vite proxy with a Vercel Serverless Function so the Gemini API
-key stays server-side in production. No client code changes needed.
-
-Tasks:
-
-- [ ] 1.1 Create `api/gemini.ts` — a Vercel Serverless Function that:
-      - Accepts any method (POST for Gemini calls)
-      - Reads `GEMINI_API_KEY` from `process.env` (not `import.meta.env`)
-      - Forwards the request to `https://generativelanguage.googleapis.com` with the
-        API key appended as a query param (matching how the Vite proxy works today)
-      - Streams the response back if the client requests streaming; otherwise returns
-        the JSON body directly
-      - Returns a 500 with a safe error message if the key is missing
-- [ ] 1.2 Check how the client currently constructs the Gemini URL (which path segments
-      after `/api` are used) — confirm `api/gemini.ts` covers all call patterns, or
-      use a catch-all `api/[...path].ts` if multiple sub-paths are needed
-- [ ] 1.3 Add `vercel.json` to the repo root with:
-      - `"framework": "vite"` (tells Vercel this is a Vite app)
-      - A rewrite rule routing `/api/*` to the serverless function if needed
-        (Vercel auto-routes `api/` files, but explicit config avoids surprises)
-- [ ] 1.4 Test locally with `vercel dev` — this runs the serverless function alongside
-      the Vite dev server, proving the function works before deploying
-
----
-
-### Phase 2 — Vercel Setup + Deploy
-
-**Goal:** Connect the repo to Vercel, set env vars, and get a live URL.
-
-Tasks:
-
-- [ ] 2.1 Create a Vercel account (if not already) and install Vercel CLI: `npm i -g vercel`
-- [ ] 2.2 Run `vercel` in the repo root — follow the prompts:
-      - Link to or create a new Vercel project
-      - Framework: Vite (auto-detected)
-      - Build command: `npm run build` (default)
-      - Output directory: `dist` (Vite default)
-- [ ] 2.3 Set environment variables in Vercel dashboard
-      (Settings → Environment Variables) for Production + Preview:
-      - `VITE_SUPABASE_URL` — copy from `.env`
-      - `VITE_SUPABASE_ANON_KEY` — copy from `.env`
-      - `GEMINI_API_KEY` — copy from `.env` (**no** VITE_ prefix — server only)
-- [ ] 2.4 Trigger a production deploy: `vercel --prod` or push to `main` branch
-      (connect GitHub repo in Vercel dashboard for automatic deploys on push)
-- [ ] 2.5 Smoke test the live URL:
-      - App loads
-      - Supabase data loads (existing neighborhoods / projects visible)
-      - AI extraction works (paste proposal text → Gemini extracts fields)
-      - Opportunity search works
-      - No API key visible in browser network tab
+- [ ] 1.1 Install Vercel CLI: `npm i -g vercel`
+- [ ] 1.2 Run `vercel link` in the repo root — creates `.vercel/project.json`
+      with `projectId` and `orgId` (needed for GitHub Actions)
+      - Framework: **Vite** (auto-detected)
+      - Build command: `npm run build`
+      - Output directory: `dist`
+- [ ] 1.3 Add `vercel.json` to repo root:
+      ```json
+      {
+        "framework": "vite",
+        "buildCommand": "npm run build",
+        "outputDirectory": "dist"
+      }
+      ```
+- [ ] 1.4 Set environment variables in Vercel dashboard
+      (Settings → Environment Variables, scope: **Production + Preview**):
+      - `VITE_SUPABASE_URL`
+      - `VITE_SUPABASE_ANON_KEY`
+      - `VITE_GEMINI_API_KEY`
+- [ ] 1.5 Add Vercel `.vercel.app` deployment URL to Supabase allowed origins:
+      Supabase dashboard → Authentication → URL Configuration →
+      add `https://<project-name>.vercel.app` to Redirect URLs
 
 ---
 
-### Phase 3 — Post-Deploy Checklist
+## Phase 2 — GitHub Actions: Manual Deploy Workflow
 
-**Goal:** Confirm the deployment is stable and document the URL for testers.
+**Goal:** A workflow that deploys to Vercel only when explicitly triggered —
+never automatically on every commit.
 
-Tasks:
+### Trigger options (choose one)
 
-- [ ] 3.1 Check Supabase CORS settings — add the Vercel `.vercel.app` domain to the
-      allowed origins in the Supabase project settings (Authentication → URL Configuration
-      → Site URL and Redirect URLs)
-- [ ] 3.2 Verify Supabase anon key RLS policies are in place before sharing the URL
-      widely — after Phase F (Auth) these will lock data per user; before auth, all
-      data is readable by anyone with the URL (acceptable for a closed test group)
-- [ ] 3.3 Share the URL with testers; note: no auth yet if Phase F isn't complete —
-      document this clearly so testers know the app is open
-- [ ] 3.4 Add the live URL to the README and to the progress log
-- [ ] 3.5 (Optional) Set up a custom preview URL alias in Vercel for easier sharing
+**Option A — `workflow_dispatch` (recommended):**
+Manually triggered from GitHub → Actions tab → "Run workflow" button.
+Can choose branch at trigger time. No tagging required.
+
+**Option B — Tag-based trigger:**
+Push a tag like `git tag test-deploy && git push origin test-deploy`.
+Deploy fires automatically. Good if you prefer CLI-driven deploys.
+
+**Option C — Both (flexible):**
+Support both `workflow_dispatch` and tag push. Start with A, add B later.
+
+→ **Recommend Option A** for simplicity. Add tag trigger later if preferred.
+
+### Required GitHub Secrets
+
+Add these in GitHub → repo Settings → Secrets and variables → Actions:
+
+| Secret | Where to find it |
+|---|---|
+| `VERCEL_TOKEN` | Vercel dashboard → Account Settings → Tokens → Create |
+| `VERCEL_ORG_ID` | `.vercel/project.json` → `orgId` (after `vercel link`) |
+| `VERCEL_PROJECT_ID` | `.vercel/project.json` → `projectId` (after `vercel link`) |
+
+### Workflow file
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to Vercel
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Pull Vercel project settings
+        run: npx vercel pull --yes --environment=${{ github.event.inputs.target }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build
+        run: npx vercel build ${{ github.event.inputs.target == 'production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy
+        run: npx vercel deploy --prebuilt ${{ github.event.inputs.target == 'production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+```
+
+**How to trigger:** GitHub → Actions → "Deploy to Vercel" → "Run workflow"
+→ choose `preview` or `production` → Run.
+
+- `preview` — deploys to a unique preview URL (safe for testing)
+- `production` — deploys to the main `.vercel.app` domain
+
+### Tasks
+
+- [ ] 2.1 Create `.github/workflows/` directory
+- [ ] 2.2 Create `.github/workflows/deploy.yml` with the workflow above
+- [ ] 2.3 Add `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` to
+      GitHub repo secrets
+- [ ] 2.4 Push to GitHub; trigger the workflow manually for first deploy
+- [ ] 2.5 Smoke test the live URL: app loads, Supabase data loads, AI
+      extraction works, login/register works
+
+---
+
+## Phase 3 — (Optional) Move Gemini Key Server-Side
+
+**Goal:** Remove `VITE_GEMINI_API_KEY` from the browser bundle for a more
+secure setup. Deferred — not needed for a small test group.
+
+When to do this: before making the URL publicly shareable, or if the API key
+is quota-sensitive.
+
+**Approach:** Create `api/gemini.ts` — a Vercel Serverless Function that
+receives requests at `/api/gemini`, adds the API key server-side, and
+forwards to Google's API. Update all AI service files to call `/api/gemini`
+instead of using the SDK directly with the client-side key.
+
+This requires:
+- Creating `api/gemini.ts` (catch-all proxy function)
+- Updating `src/services/ai/gemini.ts`, `extractProject.ts`,
+  `extractNeighborhood.ts` to call the proxy instead of SDK directly
+- Renaming `VITE_GEMINI_API_KEY` → `GEMINI_API_KEY` in Vercel env vars
+  (drop the `VITE_` prefix so it's server-side only)
 
 ---
 
@@ -126,20 +194,19 @@ Tasks:
 
 | Risk | Mitigation |
 |---|---|
-| Vite proxy path doesn't match the serverless function path | Check `vite.config.ts` proxy target carefully; use catch-all `api/[...path].ts` if multiple sub-paths are used |
-| Streaming responses from Gemini break in the serverless function | Test with `vercel dev` first; Vercel functions support streaming via `res.write()` / ReadableStream |
-| `GEMINI_API_KEY` accidentally set with `VITE_` prefix | Double-check in Vercel dashboard — `VITE_` prefix means the value is bundled into client JS |
-| Supabase CORS rejection in production | Add the `.vercel.app` domain to Supabase allowed origins before testing |
-| Cold start latency on Vercel free tier | Acceptable for test deployment — first request after inactivity may be slow (~1–2s) |
-| Open data before auth is complete | Document explicitly; only share URL with trusted testers until Phase F is live |
+| `.vercel/project.json` committed to repo | Add `.vercel/` to `.gitignore` — org/project IDs aren't secrets but cleaner to exclude |
+| Supabase CORS rejection in production | Add Vercel URL to Supabase allowed origins (Phase 1.5) |
+| `workflow_dispatch` only available on default branch by default | Workflow file must be on `main` branch to show in Actions UI |
+| Vercel free tier cold starts | First request after inactivity may be slow — acceptable for testing |
+| Gemini API key in browser bundle | Acceptable for small test group; address in Phase 3 before wider rollout |
 
 ---
 
 ## Progress Tracking
 
-- [ ] Phase 1 — Serverless proxy complete
-- [ ] Phase 2 — Deployed to Vercel
-- [ ] Phase 3 — Post-deploy verified
+- [ ] Phase 1 — Vercel project setup
+- [ ] Phase 2 — GitHub Actions manual deploy workflow
+- [ ] Phase 3 — (Optional) Move Gemini key server-side
 
 ---
 

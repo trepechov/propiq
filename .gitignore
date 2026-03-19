@@ -41,6 +41,11 @@ coverage/
 # Claude Code local settings
 .claude/settings.local.json
 
+# Vercel (contains project/org IDs — not secrets but cleaner to exclude)
+.vercel/
+
 # Ephemeral directories (under /tools/)
 /tools/tmp/
 /tools/testing/results/
+.vercel
+.env*.local
