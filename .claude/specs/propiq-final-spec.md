@@ -205,27 +205,27 @@ username as `{username}@propiq.local` internally; display name comes from
 
 #### Tasks
 
-- [ ] F.1 Supabase config: disable email confirmation; note internal email format
+- [x] F.1 Supabase config: disable email confirmation; note internal email format
       (`{username}@propiq.local`) in a code comment near the auth service
-- [ ] F.2 Write `src/services/auth.ts` — `register(username, password)`,
+- [x] F.2 Write `src/services/auth.ts` — `register(username, password)`,
       `login(username, password)`, `logout()`, `getCurrentUser()` helpers;
       all handle the username ↔ internal-email conversion internally so callers
       never deal with fake emails
-- [ ] F.3 Build `src/pages/RegisterPage.tsx` — username + password + confirm-password
+- [x] F.3 Build `src/pages/RegisterPage.tsx` — username + password + confirm-password
       fields; calls `register()`; redirects to `/` on success
-- [ ] F.4 Build `src/pages/LoginPage.tsx` — username + password fields; calls `login()`;
-      redirects to `/` on success; link to "Contact admin if you forgot your password"
-      (no self-service reset)
-- [ ] F.5 Add route guard — wrap protected routes with an `<AuthGuard>` component that
-      redirects unauthenticated users to `/login`
+- [x] F.4 Build `src/pages/LoginPage.tsx` — username + password fields; calls `login()`;
+      redirects to `/` on success; link to register page
+- [x] F.5 Add route guard — wrap protected routes with `<RequireAuth>` component
+      (uses react-router Outlet pattern); redirects unauthenticated users to `/login`
 - [ ] F.6 Add `user_id uuid references auth.users` column to `neighborhoods`,
       `projects`, and `units` tables (migration `003_add_user_id.sql`); backfill
       existing rows with the first admin `uid` or leave null and restrict via RLS
-- [ ] F.7 Enable RLS on `neighborhoods`, `projects`, `units`:
-      `policy "own data" using (user_id = auth.uid())` for SELECT/INSERT/UPDATE
+- [x] F.7 Enable RLS on all tables (Option B — authenticated-role full-access policies);
+      migration `003_enable_rls.sql` — must be run manually in Supabase dashboard
 - [ ] F.8 Update all Supabase service calls to pass `user_id: session.user.id` on insert
-- [ ] F.9 Add auth state to NavBar (Phase G task G.1 dependency): show logged-in
-      username + "Logout" button; call `logout()` and redirect to `/login`
+      (skipped — using Option B; no user_id column needed)
+- [x] F.9 Auth state in AppBar: show logged-in username + Logout button; nav links
+      hidden on login/register pages (user is not logged in there)
 - [ ] F.10 (v2, optional) Build `src/pages/AdminUsersPage.tsx` — lists all users via a
        Supabase Edge Function; admin can set a new temporary password; sets
        `must_change_password` flag; add route `/admin/users` gated by admin role check
@@ -286,6 +286,6 @@ with a Vercel Serverless Function that does the same job in production.
 - [x] Phase C — Projects screen — COMPLETE
 - [x] Phase D — Units screen — COMPLETE
 - [x] Phase E — Opportunity Search — COMPLETE
-- [ ] Phase F — Authentication
+- [x] Phase F — Authentication (core complete; F.6/F.8 skipped — Option B chosen)
 - [ ] Phase G — Navigation + Polish
 - [ ] Phase H — Vercel Test Deployment
