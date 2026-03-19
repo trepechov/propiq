@@ -178,14 +178,91 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 ---
 
-### Phase F — Navigation + Polish
+### Phase F — Authentication
 
-**Goal**: Working app with proper navigation and a usable UI.
+**Goal**: Username + password login; all data scoped to the logged-in user.
+No email delivery. Admin resets passwords manually (v1: Supabase dashboard; v2: in-app admin panel).
 
-- [ ] F.1 Build `src/components/NavBar.tsx` — links: Neighborhoods / Projects / Search
-- [ ] F.2 Add loading states and error boundaries to all pages
-- [ ] F.3 Wire up `react-router-dom` fully: all routes registered in `App.tsx`
-- [ ] F.4 Clean up `App.tsx` — remove test textarea, replace with router + nav
+#### Auth design
+
+**Username → email mapping**: Supabase Auth requires an email address. Store each
+username as `{username}@propiq.local` internally; display name comes from
+`user_metadata.display_name`. Disable email confirmation in Supabase project settings
+(Authentication → Email → "Confirm email" toggle off).
+
+**Password reset (no email)**:
+- v1 (no code): Admin resets via Supabase dashboard → Authentication → Users → set
+  new password. Document as the support runbook.
+- v2 (in-app, add when user base grows): Protected `/admin/users` route, gated by
+  `role: 'admin'` in `user_metadata`. Admin selects a user and sets a new temporary
+  password. The actual password update runs in a Supabase Edge Function using the
+  service-role key (`supabase.auth.admin.updateUserById`). Set
+  `user_metadata.must_change_password = true`; clear it after the user submits a new
+  password on the forced-change screen. Never expose the service-role key to the
+  browser.
+- Admin role: set `role: 'admin'` in `user_metadata` manually via the Supabase
+  dashboard for the initial admin user.
+
+#### Tasks
+
+- [ ] F.1 Supabase config: disable email confirmation; note internal email format
+      (`{username}@propiq.local`) in a code comment near the auth service
+- [ ] F.2 Write `src/services/auth.ts` — `register(username, password)`,
+      `login(username, password)`, `logout()`, `getCurrentUser()` helpers;
+      all handle the username ↔ internal-email conversion internally so callers
+      never deal with fake emails
+- [ ] F.3 Build `src/pages/RegisterPage.tsx` — username + password + confirm-password
+      fields; calls `register()`; redirects to `/` on success
+- [ ] F.4 Build `src/pages/LoginPage.tsx` — username + password fields; calls `login()`;
+      redirects to `/` on success; link to "Contact admin if you forgot your password"
+      (no self-service reset)
+- [ ] F.5 Add route guard — wrap protected routes with an `<AuthGuard>` component that
+      redirects unauthenticated users to `/login`
+- [ ] F.6 Add `user_id uuid references auth.users` column to `neighborhoods`,
+      `projects`, and `units` tables (migration `003_add_user_id.sql`); backfill
+      existing rows with the first admin `uid` or leave null and restrict via RLS
+- [ ] F.7 Enable RLS on `neighborhoods`, `projects`, `units`:
+      `policy "own data" using (user_id = auth.uid())` for SELECT/INSERT/UPDATE
+- [ ] F.8 Update all Supabase service calls to pass `user_id: session.user.id` on insert
+- [ ] F.9 Add auth state to NavBar (Phase G task G.1 dependency): show logged-in
+      username + "Logout" button; call `logout()` and redirect to `/login`
+- [ ] F.10 (v2, optional) Build `src/pages/AdminUsersPage.tsx` — lists all users via a
+       Supabase Edge Function; admin can set a new temporary password; sets
+       `must_change_password` flag; add route `/admin/users` gated by admin role check
+- [ ] F.11 (v2, optional) Build `src/pages/ChangePasswordPage.tsx` — shown automatically
+       after login if `must_change_password` is true; clears the flag on success
+
+---
+
+### Phase G — Navigation + Polish
+
+**Goal**: Working app with proper navigation, a usable UI, and any loose ends cleaned up.
+Kept last because there will always be more to add as the app evolves.
+
+- [ ] G.1 Build `src/components/NavBar.tsx` — links: Neighborhoods / Projects / Search;
+      auth state (username + Logout button) wired from Phase F
+- [ ] G.2 Add loading states and error boundaries to all pages
+- [ ] G.3 Wire up `react-router-dom` fully: all routes registered in `App.tsx`
+- [ ] G.4 Clean up `App.tsx` — remove test textarea, replace with router + nav
+- [ ] G.5 Ongoing: UI improvements, empty states, mobile responsiveness, etc.
+
+---
+
+### Phase H — Vercel Test Deployment
+
+**Goal:** Deploy to Vercel free plan so others can test the app. Not production — a shared test URL.
+Full spec: `.claude/specs/vercel-deployment-spec.md`
+
+The key challenge is replacing the dev-only Vite proxy (keeps Gemini API key off the browser)
+with a Vercel Serverless Function that does the same job in production.
+
+- [ ] H.1 Create `api/gemini.ts` — Vercel Serverless Function that forwards `/api/*` to
+      Google's Gemini API using `GEMINI_API_KEY` from server-side env vars
+- [ ] H.2 Add `vercel.json` with Vite framework config; test locally with `vercel dev`
+- [ ] H.3 Connect repo to Vercel; set env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+      `GEMINI_API_KEY` — no VITE_ prefix on the API key)
+- [ ] H.4 Deploy (`vercel --prod`); smoke test all features on live URL
+- [ ] H.5 Add Vercel domain to Supabase allowed origins; share URL with testers
 
 ---
 
@@ -209,4 +286,6 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - [x] Phase C — Projects screen — COMPLETE
 - [x] Phase D — Units screen — COMPLETE
 - [x] Phase E — Opportunity Search — COMPLETE
-- [ ] Phase F — Navigation + Polish
+- [ ] Phase F — Authentication
+- [ ] Phase G — Navigation + Polish
+- [ ] Phase H — Vercel Test Deployment

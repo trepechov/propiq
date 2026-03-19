@@ -96,7 +96,8 @@ Tasks:
 - [ ] 2.4 Implement `/api/query` Route Handler — receives NL question + proposal IDs, fetches from Supabase server-side, calls Gemini
 - [ ] 2.5 Migrate `ProposalInput` + `ProposalReview` as Client Components calling the new API routes
 - [ ] 2.6 Build Server Component for `ProposalTable` (SSR initial load, client sort/filter)
-- [ ] 2.7 Add Supabase Auth (email magic link) — protect the app behind login
+- [ ] 2.7 Add Supabase Auth (username + password, no email) — protect the app behind login;
+      see auth spec notes below for design decisions
 - [ ] 2.8 Row-level security in Supabase so users only see their own proposals
 
 ### Phase 3: Python FastAPI AI Service
@@ -112,6 +113,49 @@ Tasks:
 - [ ] 3.5 Update Next.js API routes to call FastAPI instead of calling Gemini directly
 - [ ] 3.6 Dockerise FastAPI service (`Dockerfile` + `docker-compose.yml` with Next.js + FastAPI)
 - [ ] 3.7 Deploy: FastAPI to Fly.io or Railway, Next.js to Vercel; update env vars
+
+---
+
+## Authentication Design Notes
+
+### Username + password (no email)
+
+Supabase Auth is email-centric, so the workaround is to store the username as
+`{username}@propiq.local` internally and disable email confirmation in the Supabase
+project settings. The user's display name is stored in `user_metadata.display_name`.
+
+**Registration flow:** user enters username + password → app calls
+`supabase.auth.signUp({ email: `${username}@propiq.local`, password, options: { data: { display_name: username } } })`.
+
+**Login flow:** user enters username + password → app converts to the internal email
+format and calls `supabase.auth.signInWithPassword()`.
+
+### Password reset (no email, admin-only)
+
+There is no self-service password reset because that requires email delivery.
+Two-tier approach:
+
+**v1 — Supabase dashboard (no code required):**
+Admin goes to Supabase dashboard → Authentication → Users → finds the user → sets
+a new password directly. Document this as the support procedure. Simple enough for
+a small user base.
+
+**v2 — In-app admin panel (optional, add when needed):**
+A protected `/admin/users` route visible only to users with `role: 'admin'` in
+`user_metadata`. Shows a list of all users; admin can set a new temporary password
+for any user via a form. The form calls a Supabase Edge Function (or Next.js Route
+Handler in Phase 2) that uses the Supabase Admin API
+(`supabase.auth.admin.updateUserById(uid, { password })`) — this call requires the
+service-role key and must never run in the browser. The user should be forced to
+change the password on next login (track via a `must_change_password` flag in
+`user_metadata`; cleared after the first password change).
+
+### Admin role assignment
+
+Set `role: 'admin'` in `user_metadata` manually via the Supabase dashboard for the
+first admin user. Subsequent admin grants can be done through the admin panel.
+Never derive admin status from a client-side field alone — always verify on the
+server/edge function side using the service-role key.
 
 ---
 
