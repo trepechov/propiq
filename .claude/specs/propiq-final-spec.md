@@ -289,5 +289,6 @@ with a Vercel Serverless Function that does the same job in production.
 - [x] Phase D — Units screen — COMPLETE
 - [x] Phase E — Opportunity Search — COMPLETE
 - [x] Phase F — Authentication (core complete; F.6/F.8 skipped — Option B chosen)
-- [ ] Phase G — Navigation + Polish
-- [x] Phase H — Vercel Test Deployment
+- [x] Phase F — Vercel Test Deployment
+
+- [ ] Phase Z — Navigation + Polish
