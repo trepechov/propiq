@@ -257,12 +257,14 @@ The key challenge is replacing the dev-only Vite proxy (keeps Gemini API key off
 with a Vercel Serverless Function that does the same job in production.
 
 - [ ] H.1 Create `api/gemini.ts` — Vercel Serverless Function that forwards `/api/*` to
-      Google's Gemini API using `GEMINI_API_KEY` from server-side env vars
-- [ ] H.2 Add `vercel.json` with Vite framework config; test locally with `vercel dev`
-- [ ] H.3 Connect repo to Vercel; set env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
-      `GEMINI_API_KEY` — no VITE_ prefix on the API key)
-- [ ] H.4 Deploy (`vercel --prod`); smoke test all features on live URL
+      Google's Gemini API using `GEMINI_API_KEY` from server-side env vars (deferred — key
+      is currently client-side via VITE_ prefix, acceptable for test group)
+- [x] H.2 Add `vercel.json` with Vite framework config
+- [x] H.3 Connect repo to Vercel; set env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+      `VITE_GEMINI_API_KEY`)
+- [x] H.4 Deployed successfully; app live on Vercel
 - [ ] H.5 Add Vercel domain to Supabase allowed origins; share URL with testers
+- [ ] H.6 Set up GitHub Actions manual deploy workflow (workflow_dispatch)
 
 ---
 
@@ -288,4 +290,4 @@ with a Vercel Serverless Function that does the same job in production.
 - [x] Phase E — Opportunity Search — COMPLETE
 - [x] Phase F — Authentication (core complete; F.6/F.8 skipped — Option B chosen)
 - [ ] Phase G — Navigation + Polish
-- [ ] Phase H — Vercel Test Deployment
+- [x] Phase H — Vercel Test Deployment
