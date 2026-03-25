@@ -1,8 +1,8 @@
 # PropIQ — Final Implementation Spec
 
 **Created**: 2026-03-17
-**Updated**: 2026-03-18
-**Status**: In Progress — Phases A–D complete
+**Updated**: 2026-03-26
+**Status**: Vite app feature-complete (Phases A–H done) — next: Next.js + LangChain.js migration
 
 ---
 
@@ -14,6 +14,8 @@ The app surfaces investment opportunities, ranks them against personal criteria,
 learns from user feedback over time.
 
 **Tech stack (current):** React + Vite + TypeScript, Supabase (PostgreSQL), Gemini `gemini-2.5-flash`
+
+**Tech stack (next — see migration spec):** Next.js 15 App Router, LangChain.js (`@langchain/google-genai`), Supabase SSR — migration plan in `.claude/specs/nextjs-langchain-migration-spec.md`
 
 ---
 
@@ -172,9 +174,9 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - [x] E.4 Build `src/components/FeedbackWidget.tsx` — thumbs up/down + optional note per result;
       calls `saveFeedback` on submit; button state locked after vote
 - [x] E.5 Add route `/search` to `App.tsx`
-- [ ] E.6 Feed stored feedback into subsequent searches — load recent `search_feedback` rows
-      from Supabase and inject a summary into the Gemini prompt:
-      "User previously rated these projects UP: X, Y; DOWN: Z" so results improve over time
+- [x] E.6 Feed stored feedback into subsequent searches — `buildFeedbackContext()` in
+      `searchOpportunities.ts` groups past ratings by project and injects a
+      "Past User Feedback" block into the Gemini prompt (up/down counts + notes per project)
 
 ---
 
@@ -206,7 +208,9 @@ username as `{username}@propiq.local` internally; display name comes from
 #### Tasks
 
 - [x] F.1 Supabase config: disable email confirmation; note internal email format
-      (`{username}@propiq.local`) in a code comment near the auth service
+      (`{username}@example.com`) in a code comment near the auth service
+      (implementation uses `example.com`, not `propiq.local` as spec originally stated —
+      `example.com` is IANA-reserved so has valid DNS but no real mail server)
 - [x] F.2 Write `src/services/auth.ts` — `register(username, password)`,
       `login(username, password)`, `logout()`, `getCurrentUser()` helpers;
       all handle the username ↔ internal-email conversion internally so callers
@@ -239,11 +243,12 @@ username as `{username}@propiq.local` internally; display name comes from
 **Goal**: Working app with proper navigation, a usable UI, and any loose ends cleaned up.
 Kept last because there will always be more to add as the app evolves.
 
-- [ ] G.1 Build `src/components/NavBar.tsx` — links: Neighborhoods / Projects / Search;
+- [x] G.1 Build `src/components/NavBar.tsx` — links: Neighborhoods / Projects / Search;
       auth state (username + Logout button) wired from Phase F
+      (implemented inline in `App.tsx` as `NavBar` function component)
 - [ ] G.2 Add loading states and error boundaries to all pages
-- [ ] G.3 Wire up `react-router-dom` fully: all routes registered in `App.tsx`
-- [ ] G.4 Clean up `App.tsx` — remove test textarea, replace with router + nav
+- [x] G.3 Wire up `react-router-dom` fully: all routes registered in `App.tsx`
+- [x] G.4 Clean up `App.tsx` — all routes and nav wired; no leftover test code
 - [ ] G.5 Ongoing: UI improvements, empty states, mobile responsiveness, etc.
 
 ---
@@ -258,7 +263,8 @@ with a Vercel Serverless Function that does the same job in production.
 
 - [ ] H.1 Create `api/gemini.ts` — Vercel Serverless Function that forwards `/api/*` to
       Google's Gemini API using `GEMINI_API_KEY` from server-side env vars (deferred — key
-      is currently client-side via VITE_ prefix, acceptable for test group)
+      is currently client-side via `VITE_GEMINI_API_KEY`, visible in browser bundle;
+      **this is the critical security gap driving the Next.js migration**)
 - [x] H.2 Add `vercel.json` with Vite framework config
 - [x] H.3 Connect repo to Vercel; set env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
       `VITE_GEMINI_API_KEY`)
@@ -287,8 +293,22 @@ with a Vercel Serverless Function that does the same job in production.
 - [x] Phase B — Neighborhoods screen — COMPLETE
 - [x] Phase C — Projects screen — COMPLETE
 - [x] Phase D — Units screen — COMPLETE
-- [x] Phase E — Opportunity Search — COMPLETE
-- [x] Phase F — Authentication (core complete; F.6/F.8 skipped — Option B chosen)
-- [x] Phase F — Vercel Test Deployment
+- [x] Phase E — Opportunity Search — COMPLETE (incl. E.6 feedback injection)
+- [x] Phase F — Authentication — COMPLETE (F.6/F.8 skipped — Option B chosen; F.10/F.11 deferred)
+- [x] Phase G — Navigation + Polish — COMPLETE (G.2/G.5 ongoing)
+- [x] Phase H — Vercel Test Deployment — COMPLETE (H.1 security fix deferred → triggers migration)
 
-- [ ] Phase Z — Navigation + Polish
+---
+
+### Phase I — Next.js + LangChain.js Migration
+
+**Goal**: Eliminate the Gemini API key browser exposure, move to Next.js App Router,
+and replace `@google/generative-ai` with LangChain.js in server-side Route Handlers.
+
+Full plan: `.claude/specs/nextjs-langchain-migration-spec.md`
+
+- [ ] I.1 Phase 1 complete — Next.js scaffold
+- [ ] I.2 Phase 2 complete — Auth + Supabase SSR middleware
+- [ ] I.3 Phase 3 complete — Secure Route Handlers with LangChain.js
+- [ ] I.4 Phase 4 complete — Frontend components ported as Client Components
+- [ ] I.5 Phase 5 complete — Vercel deployment updated
