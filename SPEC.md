@@ -75,13 +75,13 @@ Tasks:
 - [x] 1.1 Scaffold project: `npm create vite@latest propiq -- --template react-ts`, install MUI, Supabase JS, Google AI SDK
 - [x] 1.2 Configure Vite proxy for Gemini API (`/api` → `generativelanguage.googleapis.com`) so the API key stays in `.env` and never ships to the browser
 - [x] 1.3 Create Supabase project, run `proposals` table migration, copy env vars
-- [ ] 1.4 Build `ProposalInput` component — textarea + "Extract" button
-- [ ] 1.5 Write `extractProposal(rawText)` service — calls Gemini with structured extraction prompt + JSON mode, parses + validates response with Zod
-- [ ] 1.6 Build `ProposalReview` component — shows extracted fields in an editable form before saving
-- [ ] 1.7 Write `saveProposal(data)` service — upserts to Supabase
-- [ ] 1.8 Build `ProposalTable` component — MUI DataGrid or Table, sortable columns, loads all proposals
-- [ ] 1.9 Build `NLQueryBar` component + `queryProposals(question, proposals)` service — sends proposals as JSON context to Gemini, renders answer as markdown
-- [ ] 1.10 Wire up routing: `/` = input+table, `/proposals/:id` = detail view
+- [x] 1.4 Build `ProposalInput` component — textarea + "Extract" button (`ProjectForm.tsx`)
+- [x] 1.5 Write `extractProposal(rawText)` service — calls Gemini with structured extraction prompt + JSON mode, parses + validates response with Zod (`extractProject.ts`, `extractUnits.ts`, `extractNeighborhood.ts`)
+- [x] 1.6 Build `ProposalReview` component — shows extracted fields in an editable form before saving (`ProjectForm.tsx` + `UnitsPreviewTable.tsx`)
+- [x] 1.7 Write `saveProposal(data)` service — upserts to Supabase (`projects.ts`, `units.ts`, `neighborhoods.ts`)
+- [x] 1.8 Build `ProposalTable` component — MUI DataGrid or Table, sortable columns, loads all proposals (`ProjectsPage.tsx`, `UnitsPage.tsx`)
+- [x] 1.9 Build `NLQueryBar` component + `queryProposals(question, proposals)` service — sends proposals as JSON context to Gemini, renders answer as markdown (`SearchPage.tsx` + `searchOpportunities.ts`)
+- [x] 1.10 Wire up routing: `/` = input+table, `/proposals/:id` = detail view (`App.tsx` — login, projects, units, neighborhoods, search routes)
 - [x] 1.11 `.env.example` + README with setup steps
 
 ### Phase 2: Next.js Migration
@@ -96,9 +96,10 @@ Tasks:
 - [ ] 2.4 Implement `/api/query` Route Handler — receives NL question + proposal IDs, fetches from Supabase server-side, calls Gemini
 - [ ] 2.5 Migrate `ProposalInput` + `ProposalReview` as Client Components calling the new API routes
 - [ ] 2.6 Build Server Component for `ProposalTable` (SSR initial load, client sort/filter)
-- [ ] 2.7 Add Supabase Auth (username + password, no email) — protect the app behind login;
-      see auth spec notes below for design decisions
-- [ ] 2.8 Row-level security in Supabase so users only see their own proposals
+- [x] 2.7 Add Supabase Auth (username + password, no email) — protect the app behind login;
+      implemented in Phase 1 Vite app (`LoginPage.tsx`, `RegisterPage.tsx`, `AuthContext.tsx`, `RequireAuth.tsx`, `auth.ts`)
+- [x] 2.8 Row-level security in Supabase so users only see their own proposals
+      (`supabase/migrations/003_enable_rls.sql` — authenticated users get full access; per-user isolation deferred)
 
 ### Phase 3: Python FastAPI AI Service
 
@@ -173,8 +174,8 @@ server/edge function side using the service-role key.
 
 ## Progress Tracking
 
-- [ ] Phase 1 complete
-- [ ] Phase 2 complete
+- [x] Phase 1 complete
+- [ ] Phase 2 complete (2.7 and 2.8 done early in Vite app; Next.js migration not started)
 - [ ] Phase 3 complete
 
 ---
