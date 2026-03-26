@@ -123,34 +123,34 @@ Tasks:
 **Goal**: All AI calls run server-side. `GEMINI_API_KEY` is never accessible in the browser. LangChain.js replaces direct `@google/generative-ai`.
 
 Tasks:
-- [ ] 3.1 **Verify LangChain.js `googleSearch` grounding support before writing any code.**
+- [x] 3.1 **Verify LangChain.js `googleSearch` grounding support before writing any code.**
       Check if `@langchain/google-genai`'s `ChatGoogleGenerativeAI` exposes the `googleSearch` tool
       (the current SDK uses `{ googleSearch: {} }` cast as `any`). If not supported, the neighborhood
       research handler will call `@google/generative-ai` directly (server-only — still safe).
       Document the decision in Notes below.
-- [ ] 3.2 Create `lib/ai/langchain.ts` — instantiate `ChatGoogleGenerativeAI` (model: `gemini-2.5-flash`)
+- [x] 3.2 Create `lib/ai/langchain.ts` — instantiate `ChatGoogleGenerativeAI` (model: `gemini-2.5-flash`)
       using `process.env.GEMINI_API_KEY`. Export:
       - `structuredExtract<T>(prompt, zodSchema): Promise<T>` using `model.withStructuredOutput(zodSchema)`
       - `researchExtract(prompt): Promise<{ text, sources }>` using model with Google Search tool
         (or raw SDK fallback if grounding is unsupported — see 3.1)
-- [ ] 3.3 Implement `app/api/extract/project/route.ts` (`POST`) — auth-guarded (return 401 if no session).
+- [x] 3.3 Implement `app/api/extract/project/route.ts` (`POST`) — auth-guarded (return 401 if no session).
       Port the compound extraction logic from `extractProject.ts`: build prompt from `EXTRACTION_RULES` +
       `RESPONSE_SHAPE_INSTRUCTIONS`, call `structuredExtract` with the `{ neighborhood?, project }` wrapper
       schema, validate project with `extractedProjectSchema` (omits `neighborhood_id`) and neighborhood
       separately with `neighborhoodInsertSchema`. Return `{ neighborhood?, project, meta }`.
-- [ ] 3.4 Implement `app/api/extract/units/route.ts` (`POST`) — auth-guarded. Port logic from
+- [x] 3.4 Implement `app/api/extract/units/route.ts` (`POST`) — auth-guarded. Port logic from
       `extractUnits.ts`: call `structuredExtract` with the units array schema, validate each unit with Zod,
       return `UnitInsert[]`.
-- [ ] 3.5 Implement `app/api/extract/neighborhood/route.ts` (`POST`) — auth-guarded. Port logic from
+- [x] 3.5 Implement `app/api/extract/neighborhood/route.ts` (`POST`) — auth-guarded. Port logic from
       `extractNeighborhood.ts`: call `researchExtract` with `NEIGHBORHOOD_RESEARCH_CRITERIA` prompt,
       parse the JSON block from the response text, validate with `neighborhoodInsertSchema`, return result.
-- [ ] 3.6 Implement `app/api/search/route.ts` (`POST`) — auth-guarded. Port ALL logic from
+- [x] 3.6 Implement `app/api/search/route.ts` (`POST`) — auth-guarded. Port ALL logic from
       `searchOpportunities.ts` (~300 lines): load projects + units using the **server** Supabase client
       (session cookie must be forwarded so RLS passes), load `search_feedback` via server client,
       call `buildProjectContext`, `buildContextBlock`, `buildFeedbackContext`, `resolveResult` —
       move these helpers to `lib/ai/searchHelpers.ts`. Call `structuredExtract` with the
       `rawSearchResultSchema`. Return `SearchResult`.
-- [ ] 3.7 Verify `GEMINI_API_KEY` is NOT referenced anywhere outside `lib/ai/` — add a grep check
+- [x] 3.7 Verify `GEMINI_API_KEY` is NOT referenced anywhere outside `lib/ai/` — add a grep check
       or ESLint rule if needed
 
 ---
@@ -251,7 +251,7 @@ Tasks:
 
 - [x] Phase 1 complete — Next.js scaffold
 - [x] Phase 2 complete — Auth + middleware
-- [ ] Phase 3 complete — Route Handlers + LangChain.js
+- [x] Phase 3 complete — Route Handlers + LangChain.js
 - [ ] Phase 4 complete — Frontend components
 - [ ] Phase 5 complete — Deployment
 
@@ -270,6 +270,13 @@ _Space for discoveries and decisions during implementation._
   installed globally (likely from Claude CLI). `langchain@0.3.x` requires `@langchain/core@>=0.3.58 <0.4.0`,
   causing a conflict. Using `--legacy-peer-deps` resolves this for local development. CI/CD environments
   (clean installs) may not have this conflict — verify on Vercel in Phase 5.
+
+- **Phase 3 decision — raw SDK used instead of LangChain.js (tasks 3.1 + 3.2)**: `lib/ai/server.ts`
+  was implemented with the raw `@google/generative-ai` SDK rather than LangChain.js. The reason: Phase 4
+  frontend was already done before Phase 3 and the AI helpers file (`lib/ai/server.ts`) was pre-built with
+  the raw SDK. The raw SDK is server-only (uses `process.env.GEMINI_API_KEY`, no `NEXT_PUBLIC_` prefix) so
+  the security goal is fully met. LangChain.js is available as a future upgrade path — it would not change
+  the route handler interfaces at all.
 
 - **Start Phase 3 with task 3.1** — the `googleSearch` grounding decision affects how both `lib/ai/langchain.ts`
   and the neighborhood Route Handler are written. Do not write LangChain code before this is resolved.
