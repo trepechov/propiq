@@ -11,6 +11,8 @@
 
 import type { Metadata } from 'next'
 import ThemeRegistry from '../components/ThemeRegistry'
+import { AuthProvider } from '../context/AuthContext'
+import NavBar from '../components/NavBar'
 
 export const metadata: Metadata = {
   title: 'PropIQ',
@@ -26,19 +28,16 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en">
       <body>
         {/*
-         * TODO Phase 2: Wrap children with <AuthProvider> once auth context is
-         * created in context/AuthContext.tsx. AuthProvider is a Client Component
-         * and must live inside ThemeRegistry (client boundary already established).
-         *
-         * Example (Phase 2):
-         *   <ThemeRegistry>
-         *     <AuthProvider>
-         *       {children}
-         *     </AuthProvider>
-         *   </ThemeRegistry>
+         * ThemeRegistry must be the outermost client boundary.
+         * AuthProvider lives inside so it can use Emotion context (MUI components).
+         * NavBar renders the app bar on every route — auth pages include it too,
+         * but NavBar hides its nav links when user is null (logged out).
          */}
         <ThemeRegistry>
-          {children}
+          <AuthProvider>
+            <NavBar />
+            {children}
+          </AuthProvider>
         </ThemeRegistry>
       </body>
     </html>

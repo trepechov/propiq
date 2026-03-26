@@ -107,14 +107,14 @@ Tasks:
 **Goal**: Login, register, logout work. Protected routes redirect unauthenticated users. Session persists via HTTP cookies.
 
 Tasks:
-- [ ] 2.1 Create `middleware.ts` at repo root — use `@supabase/ssr` `createServerClient` to read session from cookies; redirect `/login` if no session on protected routes (`/neighborhoods`, `/projects`, `/search`)
-- [ ] 2.2 Port `services/auth.ts` → `lib/auth.ts`: same username→email convention, same `register`/`login`/`logout` functions, now using browser Supabase client
-- [ ] 2.3 Create `context/AuthContext.tsx` as a Client Component — same shape as Vite version (`useAuth` hook, `user` state, listens to `onAuthStateChange`)
-- [ ] 2.4 Wrap `app/layout.tsx` with `AuthProvider`
-- [ ] 2.5 Port `pages/LoginPage.tsx` → `app/(auth)/login/page.tsx` as a Client Component (`'use client'`) — form submission calls `lib/auth.ts`
-- [ ] 2.6 Port `pages/RegisterPage.tsx` → `app/(auth)/register/page.tsx` as a Client Component
-- [ ] 2.7 Create `app/(protected)/layout.tsx` as a Server Component that calls `lib/supabase/server.ts` to verify session; redirect to `/login` if absent (double-guard alongside middleware)
-- [ ] 2.8 Port `components/NavBar` with logout button; include in `app/layout.tsx` above the slot
+- [x] 2.1 Create `middleware.ts` at repo root — use `@supabase/ssr` `createServerClient` to read session from cookies; redirect `/login` if no session on protected routes (`/neighborhoods`, `/projects`, `/search`)
+- [x] 2.2 Port `services/auth.ts` → `lib/auth.ts`: same username→email convention, same `register`/`login`/`logout` functions, now using browser Supabase client
+- [x] 2.3 Create `context/AuthContext.tsx` as a Client Component — same shape as Vite version (`useAuth` hook, `user` state, listens to `onAuthStateChange`)
+- [x] 2.4 Wrap `app/layout.tsx` with `AuthProvider`
+- [x] 2.5 Port `pages/LoginPage.tsx` → `app/(auth)/login/page.tsx` as a Client Component (`'use client'`) — form submission calls `lib/auth.ts`
+- [x] 2.6 Port `pages/RegisterPage.tsx` → `app/(auth)/register/page.tsx` as a Client Component
+- [x] 2.7 Create `app/(protected)/layout.tsx` as a Server Component that calls `lib/supabase/server.ts` to verify session; redirect to `/login` if absent (double-guard alongside middleware)
+- [x] 2.8 Port `components/NavBar` with logout button; include in `app/layout.tsx` above the slot
 
 ---
 
@@ -249,7 +249,7 @@ Tasks:
 ## Progress Tracking
 
 - [x] Phase 1 complete — Next.js scaffold
-- [ ] Phase 2 complete — Auth + middleware
+- [x] Phase 2 complete — Auth + middleware
 - [ ] Phase 3 complete — Route Handlers + LangChain.js
 - [ ] Phase 4 complete — Frontend components
 - [ ] Phase 5 complete — Deployment
