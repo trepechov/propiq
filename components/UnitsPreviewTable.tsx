@@ -68,7 +68,13 @@ export default function UnitsPreviewTable({ units }: Props) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {units.map((unit, index) => (
+            {[...units].sort((a, b) =>
+              (a.apartment_number ?? a.identifier ?? '').localeCompare(
+                b.apartment_number ?? b.identifier ?? '',
+                undefined,
+                { numeric: true },
+              )
+            ).map((unit, index) => (
               <PreviewRow key={index} unit={unit} />
             ))}
           </TableBody>

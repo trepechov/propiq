@@ -41,7 +41,13 @@ export async function getUnitsServer(): Promise<Unit[]> {
     .order('apartment_number')
 
   if (error) throw new Error(`getUnitsServer failed: ${error.message}`)
-  return data
+  return data.sort((a, b) =>
+    (a.apartment_number ?? a.identifier ?? '').localeCompare(
+      b.apartment_number ?? b.identifier ?? '',
+      undefined,
+      { numeric: true },
+    )
+  )
 }
 
 /**

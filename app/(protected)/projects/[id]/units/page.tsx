@@ -78,7 +78,14 @@ export default function UnitsPage({ params }: PageProps) {
         getUnits(projectId),
       ])
       setProjectName(project.title)
-      setUnits(unitData)
+      const sorted = [...unitData].sort((a, b) =>
+        (a.apartment_number ?? a.identifier ?? '').localeCompare(
+          b.apartment_number ?? b.identifier ?? '',
+          undefined,
+          { numeric: true },
+        )
+      )
+      setUnits(sorted)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load units')
     } finally {
