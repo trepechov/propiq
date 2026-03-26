@@ -3,12 +3,12 @@ import { AppBar, Button, Toolbar, Typography } from '@mui/material'
 import { useAuth } from './context/AuthContext'
 import { logout } from './services/auth'
 import RequireAuth from './components/RequireAuth'
-import NeighborhoodsPage from './pages/NeighborhoodsPage'
-import ProjectsPage from './pages/ProjectsPage'
-import UnitsPage from './pages/UnitsPage'
-import SearchPage from './pages/SearchPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
+import NeighborhoodsPage from './views/NeighborhoodsPage'
+import ProjectsPage from './views/ProjectsPage'
+import UnitsPage from './views/UnitsPage'
+import SearchPage from './views/SearchPage'
+import LoginPage from './views/LoginPage'
+import RegisterPage from './views/RegisterPage'
 
 function NavBar() {
   const { user } = useAuth()
