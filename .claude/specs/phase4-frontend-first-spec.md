@@ -108,7 +108,7 @@ Tasks:
 - **Existing stub pages**: `app/(protected)/neighborhoods/page.tsx`, `projects/page.tsx`, `search/page.tsx` are already stub files — overwrite them completely.
 - **Import paths**: old `src/` imports (`../services/`, `../components/`, `../context/`) must all be updated to `@/` paths or relative paths from the new location.
 - **`next/link` vs MUI `Button component={RouterLink}`**: In Next.js, use MUI `Button` with `component={Link}` where `Link` is from `next/link`.
-- **`NEXT_PUBLIC_` env vars**: `lib/supabase/client.ts` uses `process.env.NEXT_PUBLIC_SUPABASE_URL`. The `.env` file still has `VITE_SUPABASE_URL`. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `.env` before testing.
+- **`NEXT_PUBLIC_` env vars**: `lib/supabase/client.ts` uses `process.env.NEXT_PUBLIC_SUPABASE_URL` and `process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY`. Ensure `.env.local` has these values (not the old `VITE_` prefixed names).
 
 ---
 

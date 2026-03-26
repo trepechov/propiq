@@ -8,7 +8,7 @@
 
 PropIQ is an AI-powered real estate proposal analyser. Users paste raw proposal text (from PDFs, emails, etc.) and Gemini extracts structured fields — location, developer, price/sqm, yield, completion date, payment plan. Proposals are persisted in Supabase, displayed in a sortable comparison table, and users can query proposals with natural language ("which has the best yield for a 5-year hold").
 
-The app is built in three phases matching the 30-day learning plan: React+Vite (Phase 1), Next.js migration (Phase 2), Python FastAPI backend (Phase 3).
+The app was built in three phases matching the 30-day learning plan: React+Vite (Phase 1, complete), Next.js migration (Phase 2, complete), Python FastAPI backend (Phase 3, planned).
 
 ## Requirements
 
@@ -16,9 +16,9 @@ The app is built in three phases matching the 30-day learning plan: React+Vite (
 - Proposals saved to Supabase (full CRUD)
 - Sortable comparison table (multi-column, multi-proposal)
 - Natural language Q&A over saved proposals ("which has the best yield?")
-- Phase 1: React+Vite SPA, direct Supabase client, Gemini API calls via Vite proxy
-- Phase 2: Next.js with API routes, server-side rendering, better auth
-- Phase 3: Python FastAPI microservice handling AI extraction + NL queries
+- Phase 1 (complete): React+Vite SPA, direct Supabase client, Gemini API calls via Vite proxy
+- Phase 2 (complete): Next.js App Router, server-side Gemini Route Handlers, Supabase SSR auth
+- Phase 3 (planned): Python FastAPI microservice handling AI extraction + NL queries
 
 ## Technical Approach
 
@@ -162,7 +162,7 @@ server/edge function side using the service-role key.
 
 ## Risks & Considerations
 
-- **API key exposure (Phase 1)**: Vite proxy mitigates this for dev; document that Phase 1 is not production-safe without a proper backend.
+- **API key exposure (resolved in Phase 2)**: Phase 1 used a Vite proxy for dev only and was not production-safe. Phase 2 (Next.js) moves all Gemini calls server-side — key is never bundled into client code.
 - **Gemini JSON reliability**: Use `responseMimeType: 'application/json'` in the API call to enforce JSON output. Add Zod validation before saving. Include explicit fallback instructions (`return null for unknown fields`).
 - **Gemini free tier limits**: `gemini-2.0-flash` has generous free limits (15 req/min, 1M tokens/day on AI Studio). Switch to `gemini-1.5-flash` as fallback if quota issues arise.
 - **Supabase free tier limits**: proposals table is small; not a real risk, but note connection pooling if load grows.
@@ -175,7 +175,7 @@ server/edge function side using the service-role key.
 ## Progress Tracking
 
 - [x] Phase 1 complete
-- [ ] Phase 2 complete (2.7 and 2.8 done early in Vite app; Next.js migration not started)
+- [x] Phase 2 complete (Next.js migration done — see `.claude/specs/nextjs-langchain-migration-spec.md`)
 - [ ] Phase 3 complete
 
 ---

@@ -12,9 +12,9 @@ Migrate PropIQ from a React+Vite SPA to a Next.js App Router application, elimin
 
 ---
 
-## Security Problem Being Fixed
+## Security Problem That Was Fixed
 
-The current Vite app uses `import.meta.env.GEMINI_API_KEY` directly in `extractProject.ts` and `gemini.ts`. Despite the original plan to proxy calls through Vite, **the proxy is not configured** in `vite.config.ts`. The API key ships inside the browser bundle and is readable by anyone in DevTools. This is the primary driver for the Next.js migration.
+The original Vite app used `import.meta.env.GEMINI_API_KEY` directly in `extractProject.ts` and `gemini.ts`. Despite the original plan to proxy calls through Vite, **the proxy was not configured** in `vite.config.ts`. The API key shipped inside the browser bundle and was readable by anyone in DevTools. This was the primary driver for the Next.js migration.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Created**: 2026-03-17
 **Updated**: 2026-03-26
-**Status**: Vite app feature-complete (Phases A–H done) — next: Next.js + LangChain.js migration
+**Status**: Phases A–H complete in original Vite app; migrated to Next.js (Phase I complete through I.4); Phase I.5 (deployment) pending
 
 ---
 
@@ -13,21 +13,19 @@ Gemini extracts structured data across three entities (Neighborhoods, Projects, 
 The app surfaces investment opportunities, ranks them against personal criteria, and
 learns from user feedback over time.
 
-**Tech stack (current):** React + Vite + TypeScript, Supabase (PostgreSQL), Gemini `gemini-2.5-flash`
-
-**Tech stack (next — see migration spec):** Next.js 15 App Router, LangChain.js (`@langchain/google-genai`), Supabase SSR — migration plan in `.claude/specs/nextjs-langchain-migration-spec.md`
+**Tech stack:** Next.js 15 App Router, TypeScript, MUI v7, Supabase SSR (`@supabase/ssr`), `@google/generative-ai` (server-only), Gemini `gemini-2.5-flash` — migration details in `.claude/specs/nextjs-langchain-migration-spec.md`
 
 ---
 
 ## What is already built ✅
 
-- Vite + React + TypeScript scaffold, Node 24
+- Next.js 15 App Router + TypeScript, Node 24
 - Supabase connected + 3-table schema (`neighborhoods`, `projects`, `units`)
-- Gemini connected and tested
-- Entity field configs: `domain.ts`, `projectFields.ts`, `neighborhoodFields.ts`, `unitFields.ts`
-- TypeScript types + Zod schemas: `src/types/`
-- Supabase CRUD services: `src/services/neighborhoods.ts`, `projects.ts`, `units.ts`
-- Prompt strategy files: `src/prompts/extractionRules.ts`, `evaluationCriteria.ts`, `queryContext.ts`
+- Gemini connected and tested (server-only, via Route Handlers in `app/api/`)
+- Entity field configs: `config/domain.ts`, `config/projectFields.ts`, `config/neighborhoodFields.ts`, `config/unitFields.ts`
+- TypeScript types + Zod schemas: `types/`
+- Supabase CRUD services: `lib/supabase/neighborhoods.ts`, `projects.ts`, `units.ts`
+- Prompt strategy files: `prompts/extractionRules.ts`, `prompts/evaluationCriteria.ts`, `prompts/queryContext.ts`
 
 ---
 

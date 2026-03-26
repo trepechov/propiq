@@ -10,11 +10,9 @@ Always read `SPEC.md` before starting work. It contains the full phased task bre
 
 ## Architecture overview
 
-**Phase 1 (current):** React + Vite SPA. Gemini API calls go through a Vite `/api` proxy so the API key never reaches the browser. Supabase JS client is used directly from the frontend.
+**Current stack:** Next.js 15 App Router. Gemini API calls run exclusively in server-side Route Handlers (`app/api/`). `GEMINI_API_KEY` is never accessible in the browser. Supabase uses `@supabase/ssr` for cookie-based session management with both browser and server clients.
 
-**Phase 2:** Migrate to Next.js App Router. Gemini + Supabase calls move into Route Handlers / Server Actions.
-
-**Phase 3:** Add a Python FastAPI service to handle all AI extraction and NL query work. Next.js calls FastAPI; FastAPI calls Gemini and Supabase.
+**Phase 3 (planned):** Add a Python FastAPI service to handle all AI extraction and NL query work. Next.js calls FastAPI; FastAPI calls Gemini and Supabase.
 
 ## Documentation structure
 
@@ -78,12 +76,21 @@ See `.claude/docs/DELEGATE_GUIDE.md` for detailed usage patterns.
 
 | File | Purpose |
 |------|---------|
-| `src/services/extractProposal.ts` | Gemini extraction call — returns typed `Proposal` |
-| `src/services/queryProposals.ts` | Gemini NL query call — takes question + proposals array |
-| `src/services/supabase.ts` | Supabase client, CRUD helpers |
-| `src/types/proposal.ts` | `Proposal` type and Zod validation schema |
+| `lib/ai/server.ts` | Gemini extraction helpers — `structuredExtract`, `researchExtract` |
+| `lib/supabase/client.ts` | Browser Supabase client (anon key) |
+| `lib/supabase/server.ts` | Server Supabase client (cookie-based session) |
+| `lib/supabase/neighborhoods.ts` | Neighborhoods CRUD service |
+| `lib/supabase/projects.ts` | Projects CRUD service |
+| `lib/supabase/units.ts` | Units CRUD service |
+| `lib/supabase/searchFeedback.ts` | Search feedback CRUD service |
+| `app/api/extract/project/route.ts` | POST — server-side project extraction |
+| `app/api/extract/units/route.ts` | POST — server-side units extraction |
+| `app/api/extract/neighborhood/route.ts` | POST — server-side neighborhood extraction |
+| `app/api/search/route.ts` | POST — server-side NL search |
+| `middleware.ts` | Route protection (redirects unauthenticated users) |
+| `context/AuthContext.tsx` | Auth state (browser client, `useAuth` hook) |
+| `lib/auth.ts` | Auth helpers — register, login, logout |
 | `supabase/migrations/001_proposals.sql` | Database schema |
-| `vite.config.ts` | Vite proxy config for `/api → generativelanguage.googleapis.com` |
 
 ## Extraction prompt contract
 
@@ -94,15 +101,17 @@ title, location, developer, price_sqm,
 completion_date (ISO 8601), payment_plan, currency
 ```
 
-Use `responseMimeType: 'application/json'` to enforce JSON output. This contract must stay stable across phases — only the call site changes. Validate with Zod before saving to Supabase.
+Use structured output mode to enforce JSON. This contract must stay stable — only the call site changes. Validate with Zod before saving to Supabase.
 
 ## Coding conventions
 
 - TypeScript strict mode
-- MUI v5 for UI components (Phase 1–2); decision to switch to Tailwind + shadcn/ui comes at Phase 2 start
+- MUI v7 for UI components
+- Supabase with `@supabase/ssr` (cookie-based sessions, server + browser clients)
+- `@google/generative-ai` SDK used server-only in Route Handlers
 - Zod for all external data validation (Gemini responses, Supabase reads)
 - Services are plain async functions, not classes
-- Co-located types — `Proposal` type lives next to the Supabase service
+- Co-located types — types live next to their Supabase service
 
 ## Core principles
 
@@ -131,12 +140,12 @@ Use `responseMimeType: 'application/json'` to enforce JSON output. This contract
 ## Environment variables
 
 ```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-GEMINI_API_KEY=           # server-side only via Vite proxy
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+GEMINI_API_KEY=           # server-side only — never sent to the browser
 ```
 
-Never commit `.env`. The Vite proxy ensures `GEMINI_API_KEY` is never bundled into client code.
+Never commit `.env`. `GEMINI_API_KEY` has no `NEXT_PUBLIC_` prefix so Next.js never bundles it into client code.
 
 ## Daily workflow
 
