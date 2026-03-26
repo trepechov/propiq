@@ -160,34 +160,35 @@ Tasks:
 **Goal**: All pages and components ported to Next.js App Router as Client Components, calling the new Route Handlers instead of AI services directly.
 
 Tasks:
-- [ ] 4.1a Port `services/neighborhoods.ts` → `lib/supabase/neighborhoods.ts`
+- [x] 4.1a Port `services/neighborhoods.ts` → `lib/supabase/neighborhoods.ts`
       (5 functions: get, getOne, save, update, delete — unchanged logic, update import to browser client)
-- [ ] 4.1b Port `services/projects.ts` → `lib/supabase/projects.ts`
+- [x] 4.1b Port `services/projects.ts` → `lib/supabase/projects.ts`
       (6 functions: get, getOne, getByNeighborhood, save, update, delete)
-- [ ] 4.1c Port `services/units.ts` → `lib/supabase/units.ts`
+- [x] 4.1c Port `services/units.ts` → `lib/supabase/units.ts`
       (6 functions: get, getOne, save, saveBulk, update, delete)
-- [ ] 4.1d Port `services/searchFeedback.ts` → `lib/supabase/searchFeedback.ts`
+- [x] 4.1d Port `services/searchFeedback.ts` → `lib/supabase/searchFeedback.ts`
       `saveFeedback` stays client-side (FeedbackWidget calls it directly from browser).
       `getSearchFeedback` is also needed server-side — the search Route Handler (3.6) calls it
       via the server Supabase client; keep a server-side version in `lib/supabase/server-queries.ts`
       or pass it through `lib/supabase/server.ts` directly in the Route Handler.
-- [ ] 4.2 Port `pages/NeighborhoodsPage.tsx` → `app/(protected)/neighborhoods/page.tsx` (`'use client'`);
+- [x] 4.2 Port `pages/NeighborhoodsPage.tsx` → `app/(protected)/neighborhoods/page.tsx` (`'use client'`);
       form extraction now calls `POST /api/extract/neighborhood`; update all `<Link>` to `next/link`
-- [ ] 4.3 Port `components/NeighborhoodForm.tsx` as Client Component — logic unchanged
-- [ ] 4.4 Port `pages/ProjectsPage.tsx` → `app/(protected)/projects/page.tsx` (`'use client'`);
+- [x] 4.3 Port `components/NeighborhoodForm.tsx` as Client Component — logic unchanged
+- [x] 4.4 Port `pages/ProjectsPage.tsx` → `app/(protected)/projects/page.tsx` (`'use client'`);
       extraction calls `POST /api/extract/project`; update all `<Link>` / `useNavigate` → `useRouter`
-- [ ] 4.5 Port `components/ProjectForm.tsx`, `ProjectForm.helpers.ts`, `ProjectFields.tsx` as Client Components
-- [ ] 4.6 Port `pages/UnitsPage.tsx` → `app/(protected)/projects/[id]/units/page.tsx` (`'use client'`);
+- [x] 4.5 Port `components/ProjectForm.tsx`, `ProjectForm.helpers.ts`, `ProjectFields.tsx` as Client Components
+- [x] 4.6 Port `pages/UnitsPage.tsx` → `app/(protected)/projects/[id]/units/page.tsx` (`'use client'`);
       extraction calls `POST /api/extract/units`; `useParams` → `use(params)` or `params` prop in Next.js
-- [ ] 4.7 Port `components/UnitsImportForm.tsx`, `UnitsPreviewTable.tsx` as Client Components — unchanged
-- [ ] 4.8 Port `pages/SearchPage.tsx`, `SearchPage.helpers.tsx` → `app/(protected)/search/page.tsx`
+- [x] 4.7 Port `components/UnitsImportForm.tsx`, `UnitsPreviewTable.tsx` as Client Components — unchanged
+- [x] 4.8 Port `pages/SearchPage.tsx`, `SearchPage.helpers.tsx` → `app/(protected)/search/page.tsx`
       (`'use client'`); search calls `POST /api/search`
-- [ ] 4.9 Port `components/FeedbackWidget.tsx` as Client Component — calls `saveFeedback` from
+- [x] 4.9 Port `components/FeedbackWidget.tsx` as Client Component — calls `saveFeedback` from
       `lib/supabase/searchFeedback.ts` (browser client) — unchanged behaviour
 - [ ] 4.10 Delete `src/services/ai/` directory entirely — no client-side AI calls remain
+      (deferred: keep as reference while implementing Phase 3)
 - [ ] 4.11 Remove from `package.json`: `@google/generative-ai`, `react-router-dom`, `@vitejs/plugin-react`, `vite`
        Remove `src/main.tsx`, `src/App.tsx`, `src/index.css`, `src/components/RequireAuth.tsx`
-       (replaced by Next.js middleware + server layout)
+       (deferred: clean up after Phase 3 is complete)
 
 ---
 
