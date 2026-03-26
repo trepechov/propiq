@@ -91,16 +91,14 @@ For research/grounding (neighborhood research), the plan is to use `ChatGoogleGe
 **Goal**: Working Next.js app with correct folder structure, MUI configured for App Router, and environment variables split properly.
 
 Tasks:
-- [ ] 1.1 Scaffold: `npx create-next-app@latest propiq-next --typescript --app --no-tailwind --no-src-dir` — review output and merge into current repo or replace
-- [ ] 1.2 Install dependencies: `next`, `@mui/material`, `@emotion/react`, `@emotion/styled`, `@mui/icons-material`, `@supabase/supabase-js`, `@supabase/ssr`, `zod`, `langchain`, `@langchain/google-genai`
-- [ ] 1.3 Configure MUI for App Router: create `components/ThemeRegistry.tsx` as a Client Component that wraps `CssBaseline` + `ThemeProvider`; import in `app/layout.tsx`
-- [ ] 1.4 Set up environment variable split: `GEMINI_API_KEY` (server-only, no `NEXT_PUBLIC_` prefix), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — update `.env.example`
-- [ ] 1.5 Create `lib/supabase/client.ts` (browser client using `createBrowserClient` from `@supabase/ssr`) and `lib/supabase/server.ts` (server client using `createServerClient` with cookie-based session)
-- [ ] 1.6 Copy unchanged directories from Vite app: `types/`, `prompts/`, `config/`, `supabase/`
-      Verify all cross-file imports resolve after copy (`config/` files reference `domain.ts` types)
-- [ ] 1.7 Create `app/page.tsx` — server component that calls `redirect('/neighborhoods')` from `next/navigation`
-- [ ] 1.8 Configure `next.config.ts` — add `serverExternalPackages: ['langchain', '@langchain/google-genai']`
-      if bundling these in Route Handlers causes issues; adjust as needed after Phase 3
+- [x] 1.1 Scaffold: created `app/` directory structure in-place (create-next-app skipped to avoid subdirectory clobber)
+- [x] 1.2 Install dependencies: `next@15.5.14`, `@supabase/ssr@0.5.2`, `langchain@0.3.37`, `@langchain/google-genai@0.1.12`, `@mui/material-nextjs@7.3.9` added; installed with --legacy-peer-deps due to @langchain/core peer conflict from environment
+- [x] 1.3 Configure MUI for App Router: `components/ThemeRegistry.tsx` uses `AppRouterCacheProvider` from `@mui/material-nextjs/v15-appRouter` (MUI v7 approach — differs from v5/v6 `useServerInsertedHTML` pattern)
+- [x] 1.4 Set up environment variable split: `.env.example` updated with `GEMINI_API_KEY` (server-only), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `.env.local` created with empty values
+- [x] 1.5 Created `lib/supabase/client.ts` (browser client) and `lib/supabase/server.ts` (server client with cookie-based session)
+- [x] 1.6 Copied `types/`, `prompts/`, `config/` to root level; `supabase/` already at root — skipped. Import paths verified: `types/project.ts` → `../config/domain` resolves correctly at root level
+- [x] 1.7 Created `app/page.tsx` with `redirect('/neighborhoods')`
+- [x] 1.8 Created `next.config.ts` with `serverExternalPackages` for langchain, @langchain/google-genai, @google/generative-ai
 
 ---
 
@@ -250,7 +248,7 @@ Tasks:
 
 ## Progress Tracking
 
-- [ ] Phase 1 complete — Next.js scaffold
+- [x] Phase 1 complete — Next.js scaffold
 - [ ] Phase 2 complete — Auth + middleware
 - [ ] Phase 3 complete — Route Handlers + LangChain.js
 - [ ] Phase 4 complete — Frontend components
@@ -261,6 +259,16 @@ Tasks:
 ## Notes
 
 _Space for discoveries and decisions during implementation._
+
+- **MUI v7 ThemeRegistry pattern (Phase 1 decision)**: MUI v7 provides `AppRouterCacheProvider` from
+  `@mui/material-nextjs/v15-appRouter` which handles Emotion SSR internally. This replaces the manual
+  `useServerInsertedHTML` + custom Emotion cache setup required in MUI v5/v6. The `@mui/material-nextjs`
+  package must be installed separately (added to dependencies at v7.3.9).
+
+- **`npm install --legacy-peer-deps` required**: The development environment has `@langchain/core@1.1.36`
+  installed globally (likely from Claude CLI). `langchain@0.3.x` requires `@langchain/core@>=0.3.58 <0.4.0`,
+  causing a conflict. Using `--legacy-peer-deps` resolves this for local development. CI/CD environments
+  (clean installs) may not have this conflict — verify on Vercel in Phase 5.
 
 - **Start Phase 3 with task 3.1** — the `googleSearch` grounding decision affects how both `lib/ai/langchain.ts`
   and the neighborhood Route Handler are written. Do not write LangChain code before this is resolved.
