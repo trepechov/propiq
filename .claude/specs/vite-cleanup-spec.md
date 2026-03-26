@@ -51,26 +51,26 @@ Note: `src/config/`, `src/prompts/`, `src/types/` are duplicates of root-level `
 ### Phase A: Delete Vite Files
 
 Tasks:
-- [ ] A.1 Delete `src/` directory entirely
-- [ ] A.2 Delete `index.html`
-- [ ] A.3 Delete `vite.config.ts`
-- [ ] A.4 Delete `eslint.config.js`
+- [x] A.1 Delete `src/` directory entirely
+- [x] A.2 Delete `index.html`
+- [x] A.3 Delete `vite.config.ts`
+- [x] A.4 Delete `eslint.config.js`
 
 ### Phase B: Remove Packages + Regenerate Lockfile
 
 Tasks:
-- [ ] B.1 Run `npm uninstall` for all packages listed above (one command)
-- [ ] B.2 Delete `package-lock.json`
-- [ ] B.3 Run `npm install` to regenerate a clean lockfile
-- [ ] B.4 Run `npm run build` to confirm build still passes
+- [x] B.1 Run `npm uninstall` for all packages listed above (one command)
+- [x] B.2 Delete `package-lock.json`
+- [x] B.3 Run `npm install` to regenerate a clean lockfile
+- [x] B.4 Run `npm run build` to confirm build still passes
 
 ### Phase C: Verify + Commit
 
 Tasks:
-- [ ] C.1 Confirm no `src/` imports remain in the codebase (grep check)
-- [ ] C.2 Confirm `VITE_GEMINI_API_KEY` does not appear anywhere (grep check)
-- [ ] C.3 Commit: "chore: remove Vite app, unused packages, regenerate lockfile"
-- [ ] C.4 Mark tasks 4.10 and 4.11 complete in the migration spec
+- [x] C.1 Confirm no `src/` imports remain in the codebase (grep check)
+- [x] C.2 Confirm `VITE_GEMINI_API_KEY` does not appear anywhere (grep check)
+- [x] C.3 Commit: "chore: remove Vite app, unused packages, regenerate lockfile"
+- [x] C.4 Mark tasks 4.10 and 4.11 complete in the migration spec
 
 ---
 
@@ -84,6 +84,6 @@ Tasks:
 
 ## Progress Tracking
 
-- [ ] Phase A complete — Vite files deleted
-- [ ] Phase B complete — packages removed, lockfile regenerated
-- [ ] Phase C complete — verified and committed
+- [x] Phase A complete — Vite files deleted
+- [x] Phase B complete — packages removed, lockfile regenerated
+- [x] Phase C complete — verified and committed

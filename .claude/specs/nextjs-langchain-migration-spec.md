@@ -184,9 +184,9 @@ Tasks:
       (`'use client'`); search calls `POST /api/search`
 - [x] 4.9 Port `components/FeedbackWidget.tsx` as Client Component — calls `saveFeedback` from
       `lib/supabase/searchFeedback.ts` (browser client) — unchanged behaviour
-- [ ] 4.10 Delete `src/services/ai/` directory entirely — no client-side AI calls remain
+- [x] 4.10 Delete `src/services/ai/` directory entirely — no client-side AI calls remain
       (deferred: keep as reference while implementing Phase 3)
-- [ ] 4.11 Remove from `package.json`: `@google/generative-ai`, `react-router-dom`, `@vitejs/plugin-react`, `vite`
+- [x] 4.11 Remove from `package.json`: `@google/generative-ai`, `react-router-dom`, `@vitejs/plugin-react`, `vite`
        Remove `src/main.tsx`, `src/App.tsx`, `src/index.css`, `src/components/RequireAuth.tsx`
        (deferred: clean up after Phase 3 is complete)
 
