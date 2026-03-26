@@ -14,6 +14,7 @@ import {
   Button,
   CircularProgress,
   Container,
+  IconButton,
   Paper,
   Stack,
   Table,
@@ -22,12 +23,17 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Typography,
 } from '@mui/material'
-import { getProjects } from '@/lib/supabase/projects'
+import ApartmentIcon from '@mui/icons-material/Apartment'
+import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
+import { getProjects, deleteProject } from '@/lib/supabase/projects'
 import { getNeighborhoods } from '@/lib/supabase/neighborhoods'
 import type { Project, Neighborhood } from '@/types'
 import ProjectForm from '@/components/ProjectForm'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog'
 import { BUILDING_STAGE_LABELS } from '@/config/domain'
 import type { BuildingStage } from '@/config/domain'
 
@@ -45,12 +51,18 @@ function formatDate(value: string | null): string {
 export default function ProjectsPage() {
   const router = useRouter()
 
+  type SortDir = 'asc' | 'desc'
+
   const [projects, setProjects]           = useState<Project[]>([])
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState<string | null>(null)
   const [formOpen, setFormOpen]           = useState(false)
   const [editing, setEditing]             = useState<Project | undefined>(undefined)
+  const [deleteTarget, setDeleteTarget]   = useState<Project | null>(null)
+  const [deleting, setDeleting]           = useState(false)
+  const [sortField, setSortField]         = useState<string>('title')
+  const [sortDir, setSortDir]             = useState<SortDir>('asc')
 
   async function load() {
     setLoading(true)
@@ -75,6 +87,31 @@ export default function ProjectsPage() {
     return neighborhoods.find((n) => n.id === id)?.name ?? '—'
   }
 
+  function handleSort(field: string) {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const sorted = [...projects].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    if (sortField === 'neighborhood_name') {
+      return dir * neighborhoodName(a.neighborhood_id).localeCompare(neighborhoodName(b.neighborhood_id))
+    }
+    const av = a[sortField as keyof Project] as string | number | null
+    const bv = b[sortField as keyof Project] as string | number | null
+    if (av === null || av === undefined) return dir
+    if (bv === null || bv === undefined) return -dir
+    if (typeof av === 'string' && typeof bv === 'string')
+      return dir * av.localeCompare(bv, undefined, { numeric: true })
+    if (typeof av === 'number' && typeof bv === 'number')
+      return dir * (av - bv)
+    return 0
+  })
+
   function handleAdd() {
     setEditing(undefined)
     setFormOpen(true)
@@ -87,6 +124,20 @@ export default function ProjectsPage() {
 
   function handleSaved() {
     load()
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteProject(deleteTarget.id)
+      setDeleteTarget(null)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete project')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -120,19 +171,67 @@ export default function ProjectsPage() {
       {!loading && !error && projects.length > 0 && (
         <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
           <Table stickyHeader>
-            <TableHead>
+            <TableHead sx={{ '& .MuiTableCell-head': { bgcolor: 'grey.100', fontWeight: 600 } }}>
               <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Neighborhood</TableCell>
-                <TableCell>Stage</TableCell>
-                <TableCell align="right">Price / m²</TableCell>
-                <TableCell align="right">Units</TableCell>
-                <TableCell>Completion</TableCell>
+                <TableCell sortDirection={sortField === 'title' ? sortDir : false}>
+                  <TableSortLabel
+                    active={sortField === 'title'}
+                    direction={sortField === 'title' ? sortDir : 'asc'}
+                    onClick={() => handleSort('title')}
+                  >
+                    Title
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sortDirection={sortField === 'neighborhood_name' ? sortDir : false}>
+                  <TableSortLabel
+                    active={sortField === 'neighborhood_name'}
+                    direction={sortField === 'neighborhood_name' ? sortDir : 'asc'}
+                    onClick={() => handleSort('neighborhood_name')}
+                  >
+                    Neighborhood
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sortDirection={sortField === 'current_stage' ? sortDir : false}>
+                  <TableSortLabel
+                    active={sortField === 'current_stage'}
+                    direction={sortField === 'current_stage' ? sortDir : 'asc'}
+                    onClick={() => handleSort('current_stage')}
+                  >
+                    Stage
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right" sortDirection={sortField === 'price_sqm' ? sortDir : false}>
+                  <TableSortLabel
+                    active={sortField === 'price_sqm'}
+                    direction={sortField === 'price_sqm' ? sortDir : 'asc'}
+                    onClick={() => handleSort('price_sqm')}
+                  >
+                    Price / m²
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right" sortDirection={sortField === 'total_apartments' ? sortDir : false}>
+                  <TableSortLabel
+                    active={sortField === 'total_apartments'}
+                    direction={sortField === 'total_apartments' ? sortDir : 'asc'}
+                    onClick={() => handleSort('total_apartments')}
+                  >
+                    Units
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sortDirection={sortField === 'completion_date' ? sortDir : false}>
+                  <TableSortLabel
+                    active={sortField === 'completion_date'}
+                    direction={sortField === 'completion_date' ? sortDir : 'asc'}
+                    onClick={() => handleSort('completion_date')}
+                  >
+                    Completion
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {projects.map((p) => (
+              {sorted.map((p) => (
                 <TableRow
                   key={p.id}
                   hover
@@ -150,20 +249,31 @@ export default function ProjectsPage() {
                   <TableCell align="right">{p.total_apartments ?? '—'}</TableCell>
                   <TableCell>{formatDate(p.completion_date)}</TableCell>
                   <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); handleRowClick(p) }}
-                      >
-                        Edit
-                      </Button>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
                       <Button
                         size="small"
                         variant="outlined"
+                        startIcon={<ApartmentIcon />}
                         onClick={(e) => { e.stopPropagation(); router.push(`/projects/${p.id}/units`) }}
                       >
                         Units
                       </Button>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); handleRowClick(p) }}
+                        aria-label="edit project"
+                        sx={{ color: 'grey.700' }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(p) }}
+                        aria-label="delete project"
+                        sx={{ color: 'grey.700' }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -178,6 +288,15 @@ export default function ProjectsPage() {
         onClose={() => setFormOpen(false)}
         onSaved={handleSaved}
         existing={editing}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        title="Delete Project?"
+        description={`Permanently delete "${deleteTarget?.title}"? This will also delete all units in this project. This cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
       />
     </Container>
   )
