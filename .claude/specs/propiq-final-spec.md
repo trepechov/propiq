@@ -307,8 +307,8 @@ and replace `@google/generative-ai` with LangChain.js in server-side Route Handl
 
 Full plan: `.claude/specs/nextjs-langchain-migration-spec.md`
 
-- [ ] I.1 Phase 1 complete — Next.js scaffold
-- [ ] I.2 Phase 2 complete — Auth + Supabase SSR middleware
-- [ ] I.3 Phase 3 complete — Secure Route Handlers with LangChain.js
-- [ ] I.4 Phase 4 complete — Frontend components ported as Client Components
+- [x] I.1 Phase 1 complete — Next.js scaffold
+- [x] I.2 Phase 2 complete — Auth + Supabase SSR middleware
+- [x] I.3 Phase 3 complete — Secure Route Handlers (raw @google/generative-ai, server-only)
+- [x] I.4 Phase 4 complete — Frontend components ported as Client Components
 - [ ] I.5 Phase 5 complete — Vercel deployment updated

@@ -252,7 +252,7 @@ Tasks:
 - [x] Phase 1 complete — Next.js scaffold
 - [x] Phase 2 complete — Auth + middleware
 - [x] Phase 3 complete — Route Handlers + LangChain.js
-- [ ] Phase 4 complete — Frontend components
+- [x] Phase 4 complete — Frontend components
 - [ ] Phase 5 complete — Deployment
 
 ---

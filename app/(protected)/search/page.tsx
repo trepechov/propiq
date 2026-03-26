@@ -38,6 +38,7 @@ export default function SearchPage() {
   const [query,   setQuery]   = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
+  const [notice,  setNotice]  = useState<string | null>(null)
   const [result,  setResult]  = useState<SearchResult | null>(null)
 
   async function handleSearch() {
@@ -46,6 +47,7 @@ export default function SearchPage() {
 
     setLoading(true)
     setError(null)
+    setNotice(null)
     setResult(null)
 
     try {
@@ -59,7 +61,11 @@ export default function SearchPage() {
         // 501 from stub or other error — show user-friendly message, don't crash
         const body = await response.json().catch(() => ({}))
         const msg = body?.error ?? 'Search is not yet available'
-        setError(msg)
+        if (response.status === 501) {
+          setNotice(msg)
+        } else {
+          setError(msg)
+        }
         return
       }
 
@@ -114,12 +120,8 @@ export default function SearchPage() {
         </Box>
       )}
 
-      {/* Error — includes the "coming soon" message for the 501 stub */}
-      {error && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      {notice && <Alert severity="info" sx={{ mb: 2 }}>{notice}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Stats bar */}
       {result && !loading && (

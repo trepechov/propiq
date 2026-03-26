@@ -67,6 +67,7 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
   const [meta, setMeta]                       = useState<ExtractionMeta | null>(null)
   const [saving, setSaving]                   = useState(false)
   const [error, setError]                     = useState<string | null>(null)
+  const [notice, setNotice]                   = useState<string | null>(null)
   const [neighborhoods, setNeighborhoods]     = useState<Neighborhood[]>([])
   const [pendingNeighborhood, setPendingNeighborhood] = useState<NeighborhoodInsert | null>(null)
   const [savingNeighborhood, setSavingNeighborhood]   = useState(false)
@@ -79,6 +80,7 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
     if (!open) return
     setExtracted(false)
     setError(null)
+    setNotice(null)
     setMeta(null)
     setPendingNeighborhood(null)
     if (existing) {
@@ -98,6 +100,7 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
     setExtracting(true)
     setMeta(null)
     setError(null)
+    setNotice(null)
     setPendingNeighborhood(null)
     try {
       const response = await fetch('/api/extract/project', {
@@ -110,7 +113,11 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
         // 501 from stub or other error — show user-friendly message, don't crash
         const body = await response.json().catch(() => ({}))
         const msg = body?.error ?? 'AI extraction is not yet available'
-        setError(msg)
+        if (response.status === 501) {
+          setNotice(msg)
+        } else {
+          setError(msg)
+        }
         return
       }
 
@@ -212,6 +219,7 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
             </Alert>
           )}
 
+          {notice && <Alert severity="info">{notice}</Alert>}
           {error && <Alert severity="error">{error}</Alert>}
 
           {pendingNeighborhood && (

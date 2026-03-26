@@ -89,7 +89,7 @@ Tasks:
 
 Tasks:
 - [x] D.1 Run `npm run build` — fix any TypeScript or ESLint errors
-- [ ] D.2 Run `npm run dev` — manually test:
+- [x] D.2 Run `npm run dev` — manually test:
       - Login / register / logout
       - Create, edit, delete a neighborhood
       - Create, edit, delete a project (linked to neighborhood)
@@ -97,7 +97,7 @@ Tasks:
       - Navigate between all pages
       - AI extraction buttons present but disabled/error on click (expected)
       - Search page loads but shows "coming soon" (expected)
-- [ ] D.3 Commit: "feat: port all frontend components to Next.js App Router (Phase 4)"
+- [x] D.3 Commit: "feat: port all frontend components to Next.js App Router (Phase 4)"
 
 ---
 

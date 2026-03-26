@@ -57,6 +57,7 @@ export default function UnitsImportForm({ open, onClose, onSaved, projectId }: P
   const [meta, setMeta]       = useState<ExtractionMeta | null>(null)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  const [notice, setNotice]   = useState<string | null>(null)
 
   // Reset state when the dialog opens
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function UnitsImportForm({ open, onClose, onSaved, projectId }: P
     setParsed(false)
     setMeta(null)
     setError(null)
+    setNotice(null)
   }, [open])
 
   async function handleParse() {
@@ -75,18 +77,23 @@ export default function UnitsImportForm({ open, onClose, onSaved, projectId }: P
     setParsing(true)
     setMeta(null)
     setError(null)
+    setNotice(null)
     try {
       const response = await fetch('/api/extract/units', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed, projectId }),
+        body: JSON.stringify({ rawText: trimmed, projectId }),
       })
 
       if (!response.ok) {
         // 501 from stub or other error — show user-friendly message, don't crash
         const body = await response.json().catch(() => ({}))
         const msg = body?.error ?? 'AI extraction is not yet available'
-        setError(msg)
+        if (response.status === 501) {
+          setNotice(msg)
+        } else {
+          setError(msg)
+        }
         return
       }
 
@@ -162,6 +169,7 @@ export default function UnitsImportForm({ open, onClose, onSaved, projectId }: P
             </Alert>
           )}
 
+          {notice && <Alert severity="info">{notice}</Alert>}
           {error && <Alert severity="error">{error}</Alert>}
 
           {parsed && units.length > 0 && (

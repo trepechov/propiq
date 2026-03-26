@@ -9,7 +9,7 @@
  * an optional score badge, and a thumbs-up / thumbs-down feedback widget.
  */
 
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -19,46 +19,48 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material'
-import { searchOpportunities } from '../services/searchOpportunities'
-import type { SearchResult } from '../services/searchOpportunities'
-import { ResultsColumn, MatchType } from './SearchPage.helpers'
+} from "@mui/material";
+import { searchOpportunities } from "../services/searchOpportunities";
+import type { SearchResult } from "../services/searchOpportunities";
+import { ResultsColumn, MatchType } from "./SearchPage.helpers";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDuration(ms: number): string {
-  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 }
 
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function SearchPage() {
-  const [query,   setQuery]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
-  const [result,  setResult]  = useState<SearchResult | null>(null)
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<SearchResult | null>(null);
 
   async function handleSearch() {
-    const trimmed = query.trim()
-    if (!trimmed) return
+    const trimmed = query.trim();
+    if (!trimmed) return;
 
-    setLoading(true)
-    setError(null)
-    setResult(null)
+    setLoading(true);
+    setError(null);
+    setResult(null);
 
     try {
-      const searchResult = await searchOpportunities(trimmed)
-      setResult(searchResult)
+      const searchResult = await searchOpportunities(trimmed);
+      setResult(searchResult);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed — please try again')
+      setError(
+        err instanceof Error ? err.message : "Search failed — please try again",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      handleSearch()
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      handleSearch();
     }
   }
 
@@ -70,7 +72,7 @@ export default function SearchPage() {
       </Typography>
 
       {/* Query input */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={3}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mb={3}>
         <TextField
           fullWidth
           multiline
@@ -85,7 +87,12 @@ export default function SearchPage() {
           variant="contained"
           onClick={handleSearch}
           disabled={loading || query.trim().length === 0}
-          sx={{ alignSelf: { sm: 'flex-start' }, mt: { sm: '0 !important' }, whiteSpace: 'nowrap', px: 3 }}
+          sx={{
+            alignSelf: { sm: "flex-start" },
+            mt: { sm: "0 !important" },
+            whiteSpace: "nowrap",
+            px: 3,
+          }}
         >
           Find Opportunities
         </Button>
@@ -108,15 +115,17 @@ export default function SearchPage() {
       {/* Stats bar */}
       {result && !loading && (
         <Alert severity="info" sx={{ py: 0, mb: 2 }}>
-          {formatDuration(result.meta.durationMs)} · {result.meta.tokens.toLocaleString()} tokens ·{' '}
-          {result.matching.length} matching, {result.nonMatching.length} non-matching
+          {formatDuration(result.meta.durationMs)} ·{" "}
+          {result.meta.tokens.toLocaleString()} tokens ·{" "}
+          {result.matching.length} matching, {result.nonMatching.length}{" "}
+          non-matching
         </Alert>
       )}
 
       {/* Results */}
       {result && !loading && (
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
+          direction={{ xs: "column", md: "row" }}
           spacing={3}
           alignItems="flex-start"
         >
@@ -141,13 +150,19 @@ export default function SearchPage() {
       {!result && !loading && !error && (
         <Box textAlign="center" py={10}>
           <Typography color="text.secondary">
-            Describe what you are looking for and click <strong>Find Opportunities</strong>.
+            Describe what you are looking for and click{" "}
+            <strong>Find Opportunities</strong>.
           </Typography>
-          <Typography variant="caption" color="text.disabled" mt={1} display="block">
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            mt={1}
+            display="block"
+          >
             Tip: include budget, preferred stage, orientation, or yield targets.
           </Typography>
         </Box>
       )}
     </Container>
-  )
+  );
 }

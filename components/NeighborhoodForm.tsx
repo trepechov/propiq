@@ -93,11 +93,13 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
   const [meta, setMeta]               = useState<ExtractionMeta | null>(null)
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState<string | null>(null)
+  const [notice, setNotice]           = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
       setExtracted(false)
       setError(null)
+      setNotice(null)
       setMeta(null)
       if (existing) {
         setRawText(serializeExisting(existing))
@@ -125,6 +127,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
     setResearching(true)
     setMeta(null)
     setError(null)
+    setNotice(null)
     try {
       const response = await fetch('/api/extract/neighborhood', {
         method: 'POST',
@@ -136,7 +139,11 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
         // 501 from stub or other error — show user-friendly message, don't crash
         const body = await response.json().catch(() => ({}))
         const msg = body?.error ?? 'AI extraction is not yet available'
-        setError(msg)
+        if (response.status === 501) {
+          setNotice(msg)
+        } else {
+          setError(msg)
+        }
         return
       }
 
@@ -212,6 +219,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
             </Alert>
           )}
 
+          {notice && <Alert severity="info">{notice}</Alert>}
           {error && <Alert severity="error">{error}</Alert>}
 
           {extracted && (
