@@ -28,14 +28,14 @@ AI Route Handlers are created as stubs returning HTTP 501 with a clear message. 
 **Goal**: Port all 4 Supabase service files to `lib/supabase/`. No dependencies on Phase 3.
 
 Tasks:
-- [ ] A.1 Port `src/services/neighborhoods.ts` → `lib/supabase/neighborhoods.ts`
+- [x] A.1 Port `src/services/neighborhoods.ts` → `lib/supabase/neighborhoods.ts`
       (functions: `getNeighborhoods`, `getNeighborhood`, `saveNeighborhood`, `updateNeighborhood`, `deleteNeighborhood`)
       Update import to use `lib/supabase/client.ts` browser client.
-- [ ] A.2 Port `src/services/projects.ts` → `lib/supabase/projects.ts`
+- [x] A.2 Port `src/services/projects.ts` → `lib/supabase/projects.ts`
       (functions: `getProjects`, `getProject`, `getProjectsByNeighborhood`, `saveProject`, `updateProject`, `deleteProject`)
-- [ ] A.3 Port `src/services/units.ts` → `lib/supabase/units.ts`
+- [x] A.3 Port `src/services/units.ts` → `lib/supabase/units.ts`
       (functions: `getUnits`, `getUnit`, `saveUnit`, `saveBulkUnits`, `updateUnit`, `deleteUnit`)
-- [ ] A.4 Port `src/services/searchFeedback.ts` → `lib/supabase/searchFeedback.ts`
+- [x] A.4 Port `src/services/searchFeedback.ts` → `lib/supabase/searchFeedback.ts`
       Keep `saveFeedback` (browser client). `getSearchFeedback` will be needed server-side in Phase 3
       — add it here too (browser version OK for now; Phase 3 uses server client directly).
 
@@ -46,10 +46,10 @@ Tasks:
 **Goal**: Create stub endpoints so the UI can call them without crashing. Returns 501 with JSON error body.
 
 Tasks:
-- [ ] B.1 Create `app/api/extract/project/route.ts` stub — POST, returns `{ error: "AI extraction coming in Phase 3" }` with status 501
-- [ ] B.2 Create `app/api/extract/units/route.ts` stub — same pattern
-- [ ] B.3 Create `app/api/extract/neighborhood/route.ts` stub — same pattern
-- [ ] B.4 Create `app/api/search/route.ts` stub — same pattern
+- [x] B.1 Create `app/api/extract/project/route.ts` stub — POST, returns `{ error: "AI extraction coming in Phase 3" }` with status 501
+- [x] B.2 Create `app/api/extract/units/route.ts` stub — same pattern
+- [x] B.3 Create `app/api/extract/neighborhood/route.ts` stub — same pattern
+- [x] B.4 Create `app/api/search/route.ts` stub — same pattern
 
 Each stub must still include the auth guard (return 401 if no session) so that pattern is already correct when Phase 3 fills in the logic.
 
@@ -60,25 +60,25 @@ Each stub must still include the auth guard (return 401 if no session) so that p
 **Goal**: All 4 protected pages ported as Client Components. Navigation works. CRUD is functional.
 
 Tasks:
-- [ ] C.1 Port `src/pages/NeighborhoodsPage.tsx` → `app/(protected)/neighborhoods/page.tsx`
+- [x] C.1 Port `src/pages/NeighborhoodsPage.tsx` → `app/(protected)/neighborhoods/page.tsx`
       - Replace with `'use client'` page
       - Use `lib/supabase/neighborhoods.ts`
       - Extraction calls `POST /api/extract/neighborhood` — handle 501 gracefully (show toast/alert, don't crash)
       - Replace all `<Link component={RouterLink}>` with `next/link`
       - Replace `useNavigate` with `useRouter` from `next/navigation`
-- [ ] C.2 Port `src/components/NeighborhoodForm.tsx` → `components/NeighborhoodForm.tsx` as Client Component
-- [ ] C.3 Port `src/pages/ProjectsPage.tsx` → `app/(protected)/projects/page.tsx`
+- [x] C.2 Port `src/components/NeighborhoodForm.tsx` → `components/NeighborhoodForm.tsx` as Client Component
+- [x] C.3 Port `src/pages/ProjectsPage.tsx` → `app/(protected)/projects/page.tsx`
       - Use `lib/supabase/projects.ts`
       - Extraction calls `POST /api/extract/project` — handle 501 gracefully
       - Replace React Router links/hooks with Next.js equivalents
-- [ ] C.4 Port `src/components/ProjectForm.tsx`, `ProjectForm.helpers.ts`, `ProjectFields.tsx` → `components/`
-- [ ] C.5 Port `src/pages/UnitsPage.tsx` → `app/(protected)/projects/[id]/units/page.tsx`
+- [x] C.4 Port `src/components/ProjectForm.tsx`, `ProjectForm.helpers.ts`, `ProjectFields.tsx` → `components/`
+- [x] C.5 Port `src/pages/UnitsPage.tsx` → `app/(protected)/projects/[id]/units/page.tsx`
       - `useParams()` → `use(params)` (Next.js 15 + React 19 async params)
       - Extraction calls `POST /api/extract/units` — handle 501 gracefully
-- [ ] C.6 Port `src/components/UnitsImportForm.tsx`, `UnitsPreviewTable.tsx` → `components/`
-- [ ] C.7 Port `src/pages/SearchPage.tsx`, `SearchPage.helpers.tsx` → `app/(protected)/search/page.tsx`
+- [x] C.6 Port `src/components/UnitsImportForm.tsx`, `UnitsPreviewTable.tsx` → `components/`
+- [x] C.7 Port `src/pages/SearchPage.tsx`, `SearchPage.helpers.tsx` → `app/(protected)/search/page.tsx`
       - Search calls `POST /api/search` — handle 501 gracefully (show "Search not yet available")
-- [ ] C.8 Port `src/components/FeedbackWidget.tsx` → `components/FeedbackWidget.tsx`
+- [x] C.8 Port `src/components/FeedbackWidget.tsx` → `components/FeedbackWidget.tsx`
       - Calls `saveFeedback` from `lib/supabase/searchFeedback.ts` (browser) — unchanged
 
 ---
@@ -88,7 +88,7 @@ Tasks:
 **Goal**: Clean build, all routes navigable, CRUD works end-to-end in the browser.
 
 Tasks:
-- [ ] D.1 Run `npm run build` — fix any TypeScript or ESLint errors
+- [x] D.1 Run `npm run build` — fix any TypeScript or ESLint errors
 - [ ] D.2 Run `npm run dev` — manually test:
       - Login / register / logout
       - Create, edit, delete a neighborhood
@@ -114,9 +114,9 @@ Tasks:
 
 ## Progress Tracking
 
-- [ ] Phase A complete — Supabase data services
-- [ ] Phase B complete — Stub Route Handlers
-- [ ] Phase C complete — Pages + Components
+- [x] Phase A complete — Supabase data services
+- [x] Phase B complete — Stub Route Handlers
+- [x] Phase C complete — Pages + Components
 - [ ] Phase D complete — Build passes, manually tested
 
 ---

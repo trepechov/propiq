@@ -1,8 +1,169 @@
+'use client'
+
+/**
+ * Opportunity Search page — /search
+ *
+ * User types a natural language query describing their investment criteria.
+ * In Phase 3, Gemini evaluates all stored projects + available units against
+ * the query and returns matching and non-matching opportunities.
+ *
+ * In Phase 4 (current), the /api/search endpoint is a stub returning 501.
+ * The page handles this gracefully by showing a "Search not yet available"
+ * message rather than crashing.
+ */
+
+import { useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
+import { ResultsColumn, MatchType } from './SearchPage.helpers'
+import type { SearchResult } from './SearchPage.helpers'
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDuration(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`
+}
+
+// ── Page component ────────────────────────────────────────────────────────────
+
 export default function SearchPage() {
+  const [query,   setQuery]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+  const [result,  setResult]  = useState<SearchResult | null>(null)
+
+  async function handleSearch() {
+    const trimmed = query.trim()
+    if (!trimmed) return
+
+    setLoading(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: trimmed }),
+      })
+
+      if (!response.ok) {
+        // 501 from stub or other error — show user-friendly message, don't crash
+        const body = await response.json().catch(() => ({}))
+        const msg = body?.error ?? 'Search is not yet available'
+        setError(msg)
+        return
+      }
+
+      const searchResult = await response.json()
+      setResult(searchResult)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Search failed — please try again')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      handleSearch()
+    }
+  }
+
   return (
-    <main style={{ padding: '2rem' }}>
-      <h1>Search</h1>
-      <p>Coming soon — Phase 4</p>
-    </main>
+    <Container maxWidth="xl" sx={{ py: 3 }}>
+      {/* Page header */}
+      <Typography variant="h5" mb={3}>
+        Opportunity Search
+      </Typography>
+
+      {/* Query input */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={3}>
+        <TextField
+          fullWidth
+          multiline
+          minRows={2}
+          placeholder='Describe what you are looking for — e.g. "2-bed apartment, south facing, under 120k EUR, good yield, low risk stage"'
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={loading}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSearch}
+          disabled={loading || query.trim().length === 0}
+          sx={{ alignSelf: { sm: 'flex-start' }, mt: { sm: '0 !important' }, whiteSpace: 'nowrap', px: 3 }}
+        >
+          Find Opportunities
+        </Button>
+      </Stack>
+
+      {/* Loading */}
+      {loading && (
+        <Box display="flex" justifyContent="center" py={8}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {/* Error — includes the "coming soon" message for the 501 stub */}
+      {error && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Stats bar */}
+      {result && !loading && (
+        <Alert severity="info" sx={{ py: 0, mb: 2 }}>
+          {formatDuration(result.meta.durationMs)} · {result.meta.tokens.toLocaleString()} tokens ·{' '}
+          {result.matching.length} matching, {result.nonMatching.length} non-matching
+        </Alert>
+      )}
+
+      {/* Results */}
+      {result && !loading && (
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={3}
+          alignItems="flex-start"
+        >
+          <ResultsColumn
+            title="Matching"
+            results={result.matching}
+            matchType={MatchType.MATCHING}
+            queryText={query.trim()}
+            color="success.main"
+          />
+          <ResultsColumn
+            title="Does Not Match"
+            results={result.nonMatching}
+            matchType={MatchType.NON_MATCHING}
+            queryText={query.trim()}
+            color="warning.main"
+          />
+        </Stack>
+      )}
+
+      {/* Empty state before first search */}
+      {!result && !loading && !error && (
+        <Box textAlign="center" py={10}>
+          <Typography color="text.secondary">
+            Describe what you are looking for and click <strong>Find Opportunities</strong>.
+          </Typography>
+          <Typography variant="caption" color="text.disabled" mt={1} display="block">
+            Tip: include budget, preferred stage, orientation, or yield targets.
+          </Typography>
+        </Box>
+      )}
+    </Container>
   )
 }
