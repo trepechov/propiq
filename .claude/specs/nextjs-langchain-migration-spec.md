@@ -8,13 +8,13 @@
 
 ## Overview
 
-Migrate PropIQ from a React+Vite SPA to a Next.js App Router application, eliminating the current critical security vulnerability where `VITE_GEMINI_API_KEY` is bundled into the client-side JavaScript bundle. Concurrently replace the direct `@google/generative-ai` SDK with LangChain.js (`@langchain/google-genai`) running exclusively in Next.js Route Handlers. All existing functionality is preserved: auth, neighborhoods, projects, units, AI extraction, NL search, feedback, and Vercel deployment.
+Migrate PropIQ from a React+Vite SPA to a Next.js App Router application, eliminating the current critical security vulnerability where `GEMINI_API_KEY` is bundled into the client-side JavaScript bundle. Concurrently replace the direct `@google/generative-ai` SDK with LangChain.js (`@langchain/google-genai`) running exclusively in Next.js Route Handlers. All existing functionality is preserved: auth, neighborhoods, projects, units, AI extraction, NL search, feedback, and Vercel deployment.
 
 ---
 
 ## Security Problem Being Fixed
 
-The current Vite app uses `import.meta.env.VITE_GEMINI_API_KEY` directly in `extractProject.ts` and `gemini.ts`. Despite the original plan to proxy calls through Vite, **the proxy is not configured** in `vite.config.ts`. The API key ships inside the browser bundle and is readable by anyone in DevTools. This is the primary driver for the Next.js migration.
+The current Vite app uses `import.meta.env.GEMINI_API_KEY` directly in `extractProject.ts` and `gemini.ts`. Despite the original plan to proxy calls through Vite, **the proxy is not configured** in `vite.config.ts`. The API key ships inside the browser bundle and is readable by anyone in DevTools. This is the primary driver for the Next.js migration.
 
 ---
 
@@ -35,6 +35,7 @@ The current Vite app uses `import.meta.env.VITE_GEMINI_API_KEY` directly in `ext
 ## Technical Approach
 
 **Stack after migration:**
+
 - Next.js 15 App Router (TypeScript strict)
 - MUI v7 with `'use client'` boundaries where needed
 - Supabase JS v2 with `@supabase/ssr` for server-side session management
@@ -43,6 +44,7 @@ The current Vite app uses `import.meta.env.VITE_GEMINI_API_KEY` directly in `ext
 - Same Supabase project, same migrations, same RLS policies
 
 **Folder structure (Next.js convention):**
+
 ```
 propiq/
   app/
@@ -75,9 +77,11 @@ propiq/
 ```
 
 **LangChain.js pattern for structured extraction:**
+
 ```
 ChatGoogleGenerativeAI.withStructuredOutput(zodSchema) → invoke(prompt)
 ```
+
 Use `withStructuredOutput()` (not `StructuredOutputParser`) — it is more idiomatic in LangChain.js and avoids the Zod v4 incompatibility risk that `StructuredOutputParser.fromZodSchema()` carries.
 
 For research/grounding (neighborhood research), the plan is to use `ChatGoogleGenerativeAI` with the `googleSearch` tool. **Verify first** — the raw `@google/generative-ai` SDK uses `{ googleSearch: {} }` but LangChain.js may name or expose this differently. If LangChain.js does not support `googleSearch` grounding, the neighborhood research handler may need to use the raw SDK server-side (still safe, since it is server-only).
@@ -91,6 +95,7 @@ For research/grounding (neighborhood research), the plan is to use `ChatGoogleGe
 **Goal**: Working Next.js app with correct folder structure, MUI configured for App Router, and environment variables split properly.
 
 Tasks:
+
 - [x] 1.1 Scaffold: created `app/` directory structure in-place (create-next-app skipped to avoid subdirectory clobber)
 - [x] 1.2 Install dependencies: `next@15.5.14`, `@supabase/ssr@0.5.2`, `langchain@0.3.37`, `@langchain/google-genai@0.1.12`, `@mui/material-nextjs@7.3.9` added; installed with --legacy-peer-deps due to @langchain/core peer conflict from environment
 - [x] 1.3 Configure MUI for App Router: `components/ThemeRegistry.tsx` uses `AppRouterCacheProvider` from `@mui/material-nextjs/v15-appRouter` (MUI v7 approach — differs from v5/v6 `useServerInsertedHTML` pattern)
@@ -107,6 +112,7 @@ Tasks:
 **Goal**: Login, register, logout work. Protected routes redirect unauthenticated users. Session persists via HTTP cookies.
 
 Tasks:
+
 - [x] 2.1 Create `middleware.ts` at repo root — use `@supabase/ssr` `createServerClient` to read session from cookies; redirect `/login` if no session on protected routes (`/neighborhoods`, `/projects`, `/search`)
 - [x] 2.2 Port `services/auth.ts` → `lib/auth.ts`: same username→email convention, same `register`/`login`/`logout` functions, now using browser Supabase client
 - [x] 2.3 Create `context/AuthContext.tsx` as a Client Component — same shape as Vite version (`useAuth` hook, `user` state, listens to `onAuthStateChange`)
@@ -123,16 +129,15 @@ Tasks:
 **Goal**: All AI calls run server-side. `GEMINI_API_KEY` is never accessible in the browser. LangChain.js replaces direct `@google/generative-ai`.
 
 Tasks:
+
 - [x] 3.1 **Verify LangChain.js `googleSearch` grounding support before writing any code.**
       Check if `@langchain/google-genai`'s `ChatGoogleGenerativeAI` exposes the `googleSearch` tool
       (the current SDK uses `{ googleSearch: {} }` cast as `any`). If not supported, the neighborhood
       research handler will call `@google/generative-ai` directly (server-only — still safe).
       Document the decision in Notes below.
 - [x] 3.2 Create `lib/ai/langchain.ts` — instantiate `ChatGoogleGenerativeAI` (model: `gemini-2.5-flash`)
-      using `process.env.GEMINI_API_KEY`. Export:
-      - `structuredExtract<T>(prompt, zodSchema): Promise<T>` using `model.withStructuredOutput(zodSchema)`
-      - `researchExtract(prompt): Promise<{ text, sources }>` using model with Google Search tool
-        (or raw SDK fallback if grounding is unsupported — see 3.1)
+      using `process.env.GEMINI_API_KEY`. Export: - `structuredExtract<T>(prompt, zodSchema): Promise<T>` using `model.withStructuredOutput(zodSchema)` - `researchExtract(prompt): Promise<{ text, sources }>` using model with Google Search tool
+      (or raw SDK fallback if grounding is unsupported — see 3.1)
 - [x] 3.3 Implement `app/api/extract/project/route.ts` (`POST`) — auth-guarded (return 401 if no session).
       Port the compound extraction logic from `extractProject.ts`: build prompt from `EXTRACTION_RULES` +
       `RESPONSE_SHAPE_INSTRUCTIONS`, call `structuredExtract` with the `{ neighborhood?, project }` wrapper
@@ -160,6 +165,7 @@ Tasks:
 **Goal**: All pages and components ported to Next.js App Router as Client Components, calling the new Route Handlers instead of AI services directly.
 
 Tasks:
+
 - [x] 4.1a Port `services/neighborhoods.ts` → `lib/supabase/neighborhoods.ts`
       (5 functions: get, getOne, save, update, delete — unchanged logic, update import to browser client)
 - [x] 4.1b Port `services/projects.ts` → `lib/supabase/projects.ts`
@@ -187,8 +193,8 @@ Tasks:
 - [x] 4.10 Delete `src/services/ai/` directory entirely — no client-side AI calls remain
       (deferred: keep as reference while implementing Phase 3)
 - [x] 4.11 Remove from `package.json`: `@google/generative-ai`, `react-router-dom`, `@vitejs/plugin-react`, `vite`
-       Remove `src/main.tsx`, `src/App.tsx`, `src/index.css`, `src/components/RequireAuth.tsx`
-       (deferred: clean up after Phase 3 is complete)
+      Remove `src/main.tsx`, `src/App.tsx`, `src/index.css`, `src/components/RequireAuth.tsx`
+      (deferred: clean up after Phase 3 is complete)
 
 ---
 
@@ -197,8 +203,9 @@ Tasks:
 **Goal**: Vercel deployment updated for Next.js; environment variables migrated; old Vite config removed.
 
 Tasks:
+
 - [ ] 5.1 Update `vercel.json` for Next.js (remove any Vite-specific rewrites; Next.js is natively supported by Vercel — a minimal or empty `vercel.json` is fine)
-- [ ] 5.2 Update Vercel dashboard environment variables: rename `VITE_GEMINI_API_KEY` → `GEMINI_API_KEY` (server-only), `VITE_SUPABASE_URL` → `NEXT_PUBLIC_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- [ ] 5.2 Update Vercel dashboard environment variables: rename `GEMINI_API_KEY` → `GEMINI_API_KEY` (server-only), `VITE_SUPABASE_URL` → `NEXT_PUBLIC_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - [ ] 5.3 Delete Vite-specific files: `vite.config.ts`, `index.html`, `eslint.config.js`
       (Next.js scaffold generates its own ESLint config)
 - [ ] 5.4 Update `README.md`: new setup steps, env var names, `npm run dev` is same but now runs Next.js

@@ -49,6 +49,7 @@ search_feedback (standalone — stores user ratings on opportunity search result
 ## Screens
 
 ### 1. Neighborhoods (`/neighborhoods`)
+
 - Table listing all saved neighborhoods (name, city, target buyers, project count)
 - **Add**: single text field — user pastes any raw info about an area;
   Gemini uses `NEIGHBORHOOD_RESEARCH_CRITERIA` prompt to extract + enrich neighborhood fields
@@ -57,6 +58,7 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - No delete (neighborhoods are shared across projects — archive instead if needed later)
 
 ### 2. Projects (`/projects`)
+
 - Table listing all projects (title, neighborhood, stage, price/m², yield, unit count, completion)
 - **Add**: single text field — user pastes raw proposal text;
   Gemini extracts project fields using `EXTRACTION_RULES`; user reviews extracted data before saving
@@ -65,6 +67,7 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - Units for a project accessible from the project row → links to Units screen filtered by project
 
 ### 3. Units (`/projects/:id/units`)
+
 - Table of all units for a project (all statuses: available, booked, sold)
 - Sortable by floor, price, status, direction
 - **Add**: single text area for CSV-style input — user pastes a block of unit data
@@ -73,6 +76,7 @@ search_feedback (standalone — stores user ratings on opportunity search result
 - **Edit**: inline cell editing for status and notes (most common field updates)
 
 ### 4. Opportunity Search (`/search`)
+
 - Plain text input — user describes what they are looking for
   (e.g. "2-bed apartment, south facing, under 120k EUR, good yield, low risk stage")
 - On submit: Gemini queries the DB context (all projects + units + neighborhoods)
@@ -87,12 +91,12 @@ search_feedback (standalone — stores user ratings on opportunity search result
 
 ## Prompt Files
 
-| File | Purpose |
-|---|---|
-| `src/prompts/extractionRules.ts` | How to parse raw proposal text into Neighborhood + Project + Units ✅ |
-| `src/prompts/evaluationCriteria.ts` | Investment scoring rules (yield, stage risk, orientation, red flags) ✅ |
-| `src/prompts/queryContext.ts` | Gemini role + response style for NL queries ✅ |
-| `src/prompts/neighborhoodResearchCriteria.ts` | **NEW** — How to research and enrich a neighbourhood from raw text |
+| File                                          | Purpose                                                                 |
+| --------------------------------------------- | ----------------------------------------------------------------------- |
+| `src/prompts/extractionRules.ts`              | How to parse raw proposal text into Neighborhood + Project + Units ✅   |
+| `src/prompts/evaluationCriteria.ts`           | Investment scoring rules (yield, stage risk, orientation, red flags) ✅ |
+| `src/prompts/queryContext.ts`                 | Gemini role + response style for NL queries ✅                          |
+| `src/prompts/neighborhoodResearchCriteria.ts` | **NEW** — How to research and enrich a neighbourhood from raw text      |
 
 ---
 
@@ -193,6 +197,7 @@ username as `{username}@propiq.local` internally; display name comes from
 (Authentication → Email → "Confirm email" toggle off).
 
 **Password reset (no email)**:
+
 - v1 (no code): Admin resets via Supabase dashboard → Authentication → Users → set
   new password. Document as the support runbook.
 - v2 (in-app, add when user base grows): Protected `/admin/users` route, gated by
@@ -231,10 +236,10 @@ username as `{username}@propiq.local` internally; display name comes from
 - [x] F.9 Auth state in AppBar: show logged-in username + Logout button; nav links
       hidden on login/register pages (user is not logged in there)
 - [ ] F.10 (v2, optional) Build `src/pages/AdminUsersPage.tsx` — lists all users via a
-       Supabase Edge Function; admin can set a new temporary password; sets
-       `must_change_password` flag; add route `/admin/users` gated by admin role check
+      Supabase Edge Function; admin can set a new temporary password; sets
+      `must_change_password` flag; add route `/admin/users` gated by admin role check
 - [ ] F.11 (v2, optional) Build `src/pages/ChangePasswordPage.tsx` — shown automatically
-       after login if `must_change_password` is true; clears the flag on success
+      after login if `must_change_password` is true; clears the flag on success
 
 ---
 
@@ -263,11 +268,11 @@ with a Vercel Serverless Function that does the same job in production.
 
 - [ ] H.1 Create `api/gemini.ts` — Vercel Serverless Function that forwards `/api/*` to
       Google's Gemini API using `GEMINI_API_KEY` from server-side env vars (deferred — key
-      is currently client-side via `VITE_GEMINI_API_KEY`, visible in browser bundle;
+      is currently client-side via `GEMINI_API_KEY`, visible in browser bundle;
       **this is the critical security gap driving the Next.js migration**)
 - [x] H.2 Add `vercel.json` with Vite framework config
 - [x] H.3 Connect repo to Vercel; set env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
-      `VITE_GEMINI_API_KEY`)
+      `GEMINI_API_KEY`)
 - [x] H.4 Deployed successfully; app live on Vercel
 - [ ] H.5 Add Vercel domain to Supabase allowed origins; share URL with testers
 - [ ] H.6 Set up GitHub Actions manual deploy workflow (workflow_dispatch)
@@ -276,13 +281,13 @@ with a Vercel Serverless Function that does the same job in production.
 
 ## Risks & Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Gemini JSON parsing failure on CSV units | Always wrap extraction in try/catch + show raw error to user; Zod errors map to field-level messages |
-| Neighborhood not matched when adding project | Extract neighbourhood name from project text; fuzzy-match against existing DB records; if no match, offer "Create new neighbourhood" |
-| Opportunity search context too large for Gemini | Summarise projects using `ai_summary` field rather than full records; keeps token count predictable |
-| Feedback data too sparse to be useful early | Store it from day one; even 10–20 signals per query type will reveal patterns |
-| Free tier Gemini rate limits on search (many projects) | Cache `ai_summary` per project; send summaries not full records to Gemini |
+| Risk                                                   | Mitigation                                                                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Gemini JSON parsing failure on CSV units               | Always wrap extraction in try/catch + show raw error to user; Zod errors map to field-level messages                                 |
+| Neighborhood not matched when adding project           | Extract neighbourhood name from project text; fuzzy-match against existing DB records; if no match, offer "Create new neighbourhood" |
+| Opportunity search context too large for Gemini        | Summarise projects using `ai_summary` field rather than full records; keeps token count predictable                                  |
+| Feedback data too sparse to be useful early            | Store it from day one; even 10–20 signals per query type will reveal patterns                                                        |
+| Free tier Gemini rate limits on search (many projects) | Cache `ai_summary` per project; send summaries not full records to Gemini                                                            |
 
 ---
 

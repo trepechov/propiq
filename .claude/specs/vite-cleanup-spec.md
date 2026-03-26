@@ -16,18 +16,19 @@ Remove all Vite/React Router remnants now that the Next.js migration is complete
 
 ### Files / Directories
 
-| Path | Why |
-|------|-----|
-| `src/` | Entire old Vite source tree — all superseded by `app/`, `components/`, `lib/` |
-| `index.html` | Vite entry point — Next.js uses `app/layout.tsx` |
-| `vite.config.ts` | Vite bundler config — replaced by `next.config.ts` |
-| `eslint.config.js` | Old Vite-era ESLint config — Next.js generates its own |
+| Path               | Why                                                                           |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `src/`             | Entire old Vite source tree — all superseded by `app/`, `components/`, `lib/` |
+| `index.html`       | Vite entry point — Next.js uses `app/layout.tsx`                              |
+| `vite.config.ts`   | Vite bundler config — replaced by `next.config.ts`                            |
+| `eslint.config.js` | Old Vite-era ESLint config — Next.js generates its own                        |
 
 Note: `src/config/`, `src/prompts/`, `src/types/` are duplicates of root-level `config/`, `prompts/`, `types/` (copied during migration). Safe to delete with the rest of `src/`.
 
 ### Packages to Remove
 
 **devDependencies (definitely remove):**
+
 - `vite` — old bundler
 - `@vitejs/plugin-react` — Vite-specific plugin
 - `eslint-plugin-react-refresh` — Vite dev-server HMR plugin
@@ -36,11 +37,13 @@ Note: `src/config/`, `src/prompts/`, `src/types/` are duplicates of root-level `
 - `pg` — Postgres client, not used in Next.js app
 
 **dependencies (unused, safe to remove):**
+
 - `react-router-dom` — replaced by Next.js file-based routing
 - `langchain` — installed for Phase 3 but raw `@google/generative-ai` SDK was used instead; not imported anywhere in the codebase
 - `@langchain/google-genai` — same; not imported anywhere in the codebase
 
 **dependencies (keep):**
+
 - `@google/generative-ai` — used by `lib/ai/server.ts`
 - Everything else — Next.js, MUI, Supabase, Zod
 
@@ -51,6 +54,7 @@ Note: `src/config/`, `src/prompts/`, `src/types/` are duplicates of root-level `
 ### Phase A: Delete Vite Files
 
 Tasks:
+
 - [x] A.1 Delete `src/` directory entirely
 - [x] A.2 Delete `index.html`
 - [x] A.3 Delete `vite.config.ts`
@@ -59,6 +63,7 @@ Tasks:
 ### Phase B: Remove Packages + Regenerate Lockfile
 
 Tasks:
+
 - [x] B.1 Run `npm uninstall` for all packages listed above (one command)
 - [x] B.2 Delete `package-lock.json`
 - [x] B.3 Run `npm install` to regenerate a clean lockfile
@@ -67,8 +72,9 @@ Tasks:
 ### Phase C: Verify + Commit
 
 Tasks:
+
 - [x] C.1 Confirm no `src/` imports remain in the codebase (grep check)
-- [x] C.2 Confirm `VITE_GEMINI_API_KEY` does not appear anywhere (grep check)
+- [x] C.2 Confirm `GEMINI_API_KEY` does not appear anywhere (grep check)
 - [x] C.3 Commit: "chore: remove Vite app, unused packages, regenerate lockfile"
 - [x] C.4 Mark tasks 4.10 and 4.11 complete in the migration spec
 
