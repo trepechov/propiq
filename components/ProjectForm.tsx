@@ -106,7 +106,7 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
       const response = await fetch('/api/extract/project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed }),
+        body: JSON.stringify({ rawText: trimmed }),
       })
 
       if (!response.ok) {
@@ -196,12 +196,12 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
           <TextField
             label="Paste project proposal text"
             multiline
-            rows={6}
+            minRows={6}
+            maxRows={20}
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             fullWidth
           />
-
           <Button
             variant="outlined"
             onClick={handleExtract}

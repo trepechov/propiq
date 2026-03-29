@@ -139,7 +139,8 @@ export default function UnitsImportForm({ open, onClose, onSaved, projectId }: P
           <TextField
             label="Paste unit data (CSV, table, or free text)"
             multiline
-            rows={8}
+            minRows={8}
+            maxRows={20}
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             fullWidth

@@ -132,7 +132,7 @@ export default function NeighborhoodForm({ open, onClose, onSaved, existing }: P
       const response = await fetch('/api/extract/neighborhood', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed }),
+        body: JSON.stringify({ rawText: trimmed }),
       })
 
       if (!response.ok) {
