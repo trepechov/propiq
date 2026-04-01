@@ -10,7 +10,7 @@
  * Unwrapped via React's `use()` hook in Client Components.
  */
 
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Alert,
@@ -43,6 +43,10 @@ import {
 } from '@/config/domain'
 import type { UnitType, UnitStatus, UnitDirection } from '@/config/domain'
 import UnitsImportForm from '@/components/UnitsImportForm'
+import { useTableFilter } from '@/hooks/useTableFilter'
+import TableFilterBar from '@/components/TableFilterBar'
+import { buildUnitComparator, buildUnitFilterConfigs } from '../UnitsPage.helpers'
+import type { SortDir } from '../UnitsPage.helpers'
 
 function formatNumber(value: number | null): string {
   if (value === null) return '—'
@@ -63,11 +67,11 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
+const UNIT_FILTER_CONFIGS = buildUnitFilterConfigs()
+
 export default function UnitsPage({ params }: PageProps) {
   // Next.js 15 + React 19: unwrap async params with use()
   const { id: projectId } = use(params)
-
-  type SortDir = 'asc' | 'desc'
 
   const [projectName, setProjectName] = useState<string>('')
   const [units, setUnits]             = useState<Unit[]>([])
@@ -76,8 +80,20 @@ export default function UnitsPage({ params }: PageProps) {
   const [importOpen, setImportOpen]   = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Unit | null>(null)
   const [deleting, setDeleting]         = useState(false)
-  const [sortField, setSortField]       = useState<string>('apartment_number')
-  const [sortDir, setSortDir]           = useState<SortDir>('asc')
+  const [sortField, setSortField] = useState<string>('apartment_number')
+  const [sortDir, setSortDir]     = useState<SortDir>('asc')
+
+  const filterConfigs = useMemo(() => UNIT_FILTER_CONFIGS, [])
+  const {
+    filterState,
+    setTextFilter,
+    setEnumFilter,
+    setNumberFilter,
+    setDateFilter,
+    clearFilters,
+    filteredRows,
+    isFiltered,
+  } = useTableFilter(units, filterConfigs)
 
   async function load() {
     setLoading(true)
@@ -107,23 +123,7 @@ export default function UnitsPage({ params }: PageProps) {
     }
   }
 
-  const sorted = [...units].sort((a, b) => {
-    const dir = sortDir === 'asc' ? 1 : -1
-    if (sortField === 'apartment_number') {
-      const av = a.apartment_number ?? a.identifier ?? ''
-      const bv = b.apartment_number ?? b.identifier ?? ''
-      return dir * av.localeCompare(bv, undefined, { numeric: true })
-    }
-    const av = a[sortField as keyof Unit] as string | number | null
-    const bv = b[sortField as keyof Unit] as string | number | null
-    if (av === null || av === undefined) return dir
-    if (bv === null || bv === undefined) return -dir
-    if (typeof av === 'string' && typeof bv === 'string')
-      return dir * av.localeCompare(bv, undefined, { numeric: true })
-    if (typeof av === 'number' && typeof bv === 'number')
-      return dir * (av - bv)
-    return 0
-  })
+  const sorted = [...filteredRows].sort(buildUnitComparator(sortField, sortDir))
 
   function handleSaved() {
     load()
@@ -179,6 +179,17 @@ export default function UnitsPage({ params }: PageProps) {
       )}
 
       {!loading && !error && units.length > 0 && (
+        <>
+        <TableFilterBar
+          configs={filterConfigs}
+          filterState={filterState}
+          onTextChange={setTextFilter}
+          onEnumChange={setEnumFilter}
+          onNumberChange={setNumberFilter}
+          onDateChange={setDateFilter}
+          onClear={clearFilters}
+          isFiltered={isFiltered}
+        />
         <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
           <Table stickyHeader size="small">
             <TableHead sx={{ '& .MuiTableCell-head': { bgcolor: 'grey.100', fontWeight: 600 } }}>
@@ -275,6 +286,7 @@ export default function UnitsPage({ params }: PageProps) {
             </TableBody>
           </Table>
         </TableContainer>
+        </>
       )}
 
       <UnitsImportForm

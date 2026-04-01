@@ -6,7 +6,7 @@
  * Each row links to the Units screen for that project.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Alert,
@@ -34,8 +34,13 @@ import { getNeighborhoods } from '@/lib/supabase/neighborhoods'
 import type { Project, Neighborhood } from '@/types'
 import ProjectForm from '@/components/ProjectForm'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog'
-import { BUILDING_STAGE_LABELS } from '@/config/domain'
+import TableFilterBar from '@/components/TableFilterBar'
+import { useTableFilter } from '@/hooks/useTableFilter'
 import type { BuildingStage } from '@/config/domain'
+import { BUILDING_STAGE_LABELS } from '@/config/domain'
+import { buildProjectComparator, buildProjectFilterConfigs } from './ProjectsPage.helpers'
+import type { SortDir } from './ProjectsPage.helpers'
+
 
 function formatCurrency(value: number | null, currency: string | null): string {
   if (value === null) return '—'
@@ -51,8 +56,6 @@ function formatDate(value: string | null): string {
 export default function ProjectsPage() {
   const router = useRouter()
 
-  type SortDir = 'asc' | 'desc'
-
   const [projects, setProjects]           = useState<Project[]>([])
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
   const [loading, setLoading]             = useState(true)
@@ -63,6 +66,22 @@ export default function ProjectsPage() {
   const [deleting, setDeleting]           = useState(false)
   const [sortField, setSortField]         = useState<string>('title')
   const [sortDir, setSortDir]             = useState<SortDir>('asc')
+
+  const filterConfigs = useMemo(
+    () => buildProjectFilterConfigs(neighborhoods),
+    [neighborhoods],
+  )
+
+  const {
+    filterState,
+    setTextFilter,
+    setEnumFilter,
+    setNumberFilter,
+    setDateFilter,
+    clearFilters,
+    filteredRows,
+    isFiltered,
+  } = useTableFilter(projects, filterConfigs)
 
   async function load() {
     setLoading(true)
@@ -96,21 +115,7 @@ export default function ProjectsPage() {
     }
   }
 
-  const sorted = [...projects].sort((a, b) => {
-    const dir = sortDir === 'asc' ? 1 : -1
-    if (sortField === 'neighborhood_name') {
-      return dir * neighborhoodName(a.neighborhood_id).localeCompare(neighborhoodName(b.neighborhood_id))
-    }
-    const av = a[sortField as keyof Project] as string | number | null
-    const bv = b[sortField as keyof Project] as string | number | null
-    if (av === null || av === undefined) return dir
-    if (bv === null || bv === undefined) return -dir
-    if (typeof av === 'string' && typeof bv === 'string')
-      return dir * av.localeCompare(bv, undefined, { numeric: true })
-    if (typeof av === 'number' && typeof bv === 'number')
-      return dir * (av - bv)
-    return 0
-  })
+  const sorted = [...filteredRows].sort(buildProjectComparator(sortField, sortDir, neighborhoodName))
 
   function handleAdd() {
     setEditing(undefined)
@@ -169,7 +174,18 @@ export default function ProjectsPage() {
       )}
 
       {!loading && !error && projects.length > 0 && (
-        <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
+        <>
+          <TableFilterBar
+            configs={filterConfigs}
+            filterState={filterState}
+            onTextChange={setTextFilter}
+            onEnumChange={setEnumFilter}
+            onNumberChange={setNumberFilter}
+            onDateChange={setDateFilter}
+            onClear={clearFilters}
+            isFiltered={isFiltered}
+          />
+          <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
           <Table stickyHeader>
             <TableHead sx={{ '& .MuiTableCell-head': { bgcolor: 'grey.100', fontWeight: 600 } }}>
               <TableRow>
@@ -280,7 +296,8 @@ export default function ProjectsPage() {
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+          </TableContainer>
+        </>
       )}
 
       <ProjectForm
