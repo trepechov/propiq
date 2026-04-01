@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { structuredExtract } from '@/lib/ai/server'
 import { EXTRACTION_RULES } from '@/prompts/extractionRules'
+import { getUserCriteria } from '@/lib/supabase/userCriteria'
 import { unitSchema } from '@/types/unit'
 import type { UnitInsert } from '@/types/unit'
 import type { ExtractionMeta } from '@/lib/ai/types'
@@ -80,7 +81,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const prompt = buildPrompt(rawText, projectId)
+    const extractionRules = await getUserCriteria(supabase, user.id, 'extraction_rules', EXTRACTION_RULES)
+    const prompt = buildPrompt(rawText, projectId, extractionRules)
     const { json, meta } = await structuredExtract(prompt)
 
     let parsed: unknown
@@ -124,9 +126,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-function buildPrompt(rawText: string, projectId: string): string {
+function buildPrompt(rawText: string, projectId: string, extractionRules: string): string {
   return [
-    EXTRACTION_RULES,
+    extractionRules,
     `Context: Parse the following unit data into structured records.`,
     `The project_id for ALL units is: "${projectId}"`,
     RESPONSE_SHAPE_INSTRUCTIONS,

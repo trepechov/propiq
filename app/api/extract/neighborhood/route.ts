@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { researchExtract } from '@/lib/ai/server'
 import { NEIGHBORHOOD_RESEARCH_CRITERIA } from '@/prompts/neighborhoodResearchCriteria'
+import { getUserCriteria } from '@/lib/supabase/userCriteria'
 import { neighborhoodInsertSchema } from '@/types/neighborhood'
 import type { NeighborhoodInsert } from '@/types/neighborhood'
 import type { ExtractionMeta } from '@/lib/ai/types'
@@ -50,7 +51,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const prompt = `${NEIGHBORHOOD_RESEARCH_CRITERIA}\n\n## Raw Text\n\n${rawText}`
+    const neighborhoodResearch = await getUserCriteria(supabase, user.id, 'neighborhood_research', NEIGHBORHOOD_RESEARCH_CRITERIA)
+    const prompt = `${neighborhoodResearch}\n\n## Raw Text\n\n${rawText}`
     const { text, meta } = await researchExtract(prompt)
 
     // Extract JSON block from free-text response.

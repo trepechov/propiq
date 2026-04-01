@@ -34,6 +34,7 @@ import {
 } from '@/lib/supabase/server-queries'
 import { QUERY_CONTEXT } from '@/prompts/queryContext'
 import { EVALUATION_CRITERIA } from '@/prompts/evaluationCriteria'
+import { getUserCriteria } from '@/lib/supabase/userCriteria'
 import { UnitStatus } from '@/config/domain'
 import type { Project } from '@/types/project'
 import type { Unit } from '@/types/unit'
@@ -61,10 +62,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     // Load data in parallel using server client (RLS-safe)
-    const [projects, allUnits, feedback] = await Promise.all([
+    const [projects, allUnits, feedback, queryContext, evaluationCriteria] = await Promise.all([
       getProjectsServer(),
       getUnitsServer(),
       getSearchFeedbackServer(),
+      getUserCriteria(supabase, user.id, 'query_context', QUERY_CONTEXT),
+      getUserCriteria(supabase, user.id, 'evaluation_criteria', EVALUATION_CRITERIA),
     ])
 
     // Build lookup maps
@@ -76,8 +79,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const feedbackContext = buildFeedbackContext(feedback, projects)
 
     const prompt = [
-      QUERY_CONTEXT,
-      EVALUATION_CRITERIA,
+      queryContext,
+      evaluationCriteria,
       contextBlock + feedbackContext,
       `## User Query\n\n${query}`,
       SEARCH_RESPONSE_SHAPE_INSTRUCTIONS,

@@ -25,6 +25,7 @@ import ApartmentIcon from '@mui/icons-material/Apartment'
 import LocationCityIcon from '@mui/icons-material/LocationCity'
 import LogoutIcon from '@mui/icons-material/Logout'
 import SearchIcon from '@mui/icons-material/Search'
+import TuneIcon from '@mui/icons-material/Tune'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../context/AuthContext'
@@ -83,6 +84,10 @@ export default function NavBar() {
                 <Typography variant="body2" color="text.secondary">
                   {user.username}
                 </Typography>
+              </MenuItem>
+              <MenuItem component={Link} href="/criteria" onClick={() => setAnchorEl(null)}>
+                <ListItemIcon><TuneIcon fontSize="small" /></ListItemIcon>
+                AI Criteria
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>

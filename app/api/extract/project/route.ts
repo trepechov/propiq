@@ -20,6 +20,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { structuredExtract } from '@/lib/ai/server'
 import { EXTRACTION_RULES } from '@/prompts/extractionRules'
+import { getUserCriteria } from '@/lib/supabase/userCriteria'
 import { projectInsertSchema } from '@/types/project'
 import { neighborhoodInsertSchema } from '@/types/neighborhood'
 import type { NeighborhoodInsert } from '@/types/neighborhood'
@@ -88,7 +89,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const prompt = `${EXTRACTION_RULES}\n${RESPONSE_SHAPE_INSTRUCTIONS}\n## Raw Text\n\n${rawText}`
+    const extractionRules = await getUserCriteria(supabase, user.id, 'extraction_rules', EXTRACTION_RULES)
+    const prompt = `${extractionRules}\n${RESPONSE_SHAPE_INSTRUCTIONS}\n## Raw Text\n\n${rawText}`
     const { json, meta } = await structuredExtract(prompt)
 
     let parsed: unknown
