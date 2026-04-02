@@ -31,6 +31,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { getProjects, deleteProject } from '@/lib/supabase/projects'
 import { getNeighborhoods } from '@/lib/supabase/neighborhoods'
+import { getDefaultSchemeNames } from '@/lib/supabase/projectPaymentSchemes'
 import type { Project, Neighborhood } from '@/types'
 import ProjectForm from '@/components/ProjectForm'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog'
@@ -58,6 +59,7 @@ export default function ProjectsPage() {
 
   const [projects, setProjects]           = useState<Project[]>([])
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
+  const [schemeNames, setSchemeNames]     = useState<Record<string, string>>({})
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState<string | null>(null)
   const [formOpen, setFormOpen]           = useState(false)
@@ -93,6 +95,9 @@ export default function ProjectsPage() {
       ])
       setProjects(projectData)
       setNeighborhoods(neighborhoodData)
+      // Bulk-fetch default scheme names — single query, no N+1
+      const names = await getDefaultSchemeNames(projectData.map((p) => p.id))
+      setSchemeNames(names)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load projects')
     } finally {
@@ -243,6 +248,7 @@ export default function ProjectsPage() {
                     Completion
                   </TableSortLabel>
                 </TableCell>
+                <TableCell>Default Scheme</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -264,6 +270,7 @@ export default function ProjectsPage() {
                   </TableCell>
                   <TableCell align="right">{p.total_apartments ?? '—'}</TableCell>
                   <TableCell>{formatDate(p.completion_date)}</TableCell>
+                  <TableCell>{schemeNames[p.id] ?? '—'}</TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
                       <Button

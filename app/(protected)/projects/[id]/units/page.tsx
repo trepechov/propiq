@@ -6,6 +6,8 @@
  * Accessed via /projects/[id]/units. Displays units in a table
  * and provides an "Import Units" button to paste and parse tabular data.
  *
+ * Payment scheme management moved to the Edit Project modal (ProjectFields).
+ *
  * Next.js 15 async params: params is a Promise<{ id: string }>.
  * Unwrapped via React's `use()` hook in Client Components.
  */
@@ -18,50 +20,28 @@ import {
   Button,
   CircularProgress,
   Container,
-  IconButton,
   Link as MuiLink,
   Paper,
   Stack,
   Table,
   TableBody,
-  TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
-  TableSortLabel,
   Typography,
 } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
 import { getProject } from '@/lib/supabase/projects'
 import { getUnits, deleteUnit } from '@/lib/supabase/units'
-import type { Unit } from '@/types'
+import type { Unit, Project } from '@/types'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog'
-import {
-  UNIT_TYPE_LABELS,
-  UNIT_STATUS_LABELS,
-  UNIT_DIRECTION_LABELS,
-} from '@/config/domain'
-import type { UnitType, UnitStatus, UnitDirection } from '@/config/domain'
 import UnitsImportForm from '@/components/UnitsImportForm'
+import UnitRow, { UnitsTableHead } from './UnitRow'
 import { useTableFilter } from '@/hooks/useTableFilter'
 import TableFilterBar from '@/components/TableFilterBar'
-import { buildUnitComparator, buildUnitFilterConfigs } from '../UnitsPage.helpers'
+import {
+  buildUnitComparator,
+  buildUnitFilterConfigs,
+} from '../UnitsPage.helpers'
 import type { SortDir } from '../UnitsPage.helpers'
 
-function formatNumber(value: number | null): string {
-  if (value === null) return '—'
-  return value.toLocaleString()
-}
-
-function formatArea(value: number | null): string {
-  if (value === null) return '—'
-  return `${value.toFixed(1)} m²`
-}
-
-function formatPrice(value: number | null): string {
-  if (value === null) return '—'
-  return value.toLocaleString()
-}
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -70,10 +50,9 @@ interface PageProps {
 const UNIT_FILTER_CONFIGS = buildUnitFilterConfigs()
 
 export default function UnitsPage({ params }: PageProps) {
-  // Next.js 15 + React 19: unwrap async params with use()
   const { id: projectId } = use(params)
 
-  const [projectName, setProjectName] = useState<string>('')
+  const [project, setProject]         = useState<Project | null>(null)
   const [units, setUnits]             = useState<Unit[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -99,11 +78,11 @@ export default function UnitsPage({ params }: PageProps) {
     setLoading(true)
     setError(null)
     try {
-      const [project, unitData] = await Promise.all([
+      const [projectData, unitData] = await Promise.all([
         getProject(projectId),
         getUnits(projectId),
       ])
-      setProjectName(project.title)
+      setProject(projectData)
       setUnits(unitData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load units')
@@ -151,7 +130,7 @@ export default function UnitsPage({ params }: PageProps) {
         </MuiLink>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="h5">
-            Units{projectName ? ` — ${projectName}` : ''}
+            Units{project ? ` — ${project.title}` : ''}
           </Typography>
           <Button variant="contained" onClick={() => setImportOpen(true)}>
             Import Units
@@ -192,96 +171,22 @@ export default function UnitsPage({ params }: PageProps) {
         />
         <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
           <Table stickyHeader size="small">
-            <TableHead sx={{ '& .MuiTableCell-head': { bgcolor: 'grey.100', fontWeight: 600 } }}>
-              <TableRow>
-                <TableCell sortDirection={sortField === 'unit_type' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'unit_type'}
-                    direction={sortField === 'unit_type' ? sortDir : 'asc'}
-                    onClick={() => handleSort('unit_type')}
-                  >
-                    Type
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sortDirection={sortField === 'apartment_number' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'apartment_number'}
-                    direction={sortField === 'apartment_number' ? sortDir : 'asc'}
-                    onClick={() => handleSort('apartment_number')}
-                  >
-                    Number / ID
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right" sortDirection={sortField === 'floor' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'floor'}
-                    direction={sortField === 'floor' ? sortDir : 'asc'}
-                    onClick={() => handleSort('floor')}
-                  >
-                    Floor
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right" sortDirection={sortField === 'net_area' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'net_area'}
-                    direction={sortField === 'net_area' ? sortDir : 'asc'}
-                    onClick={() => handleSort('net_area')}
-                  >
-                    Net Area
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right" sortDirection={sortField === 'total_area' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'total_area'}
-                    direction={sortField === 'total_area' ? sortDir : 'asc'}
-                    onClick={() => handleSort('total_area')}
-                  >
-                    Total Area
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right" sortDirection={sortField === 'price_sqm_vat' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'price_sqm_vat'}
-                    direction={sortField === 'price_sqm_vat' ? sortDir : 'asc'}
-                    onClick={() => handleSort('price_sqm_vat')}
-                  >
-                    Price/m² (VAT)
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right" sortDirection={sortField === 'total_price_vat' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'total_price_vat'}
-                    direction={sortField === 'total_price_vat' ? sortDir : 'asc'}
-                    onClick={() => handleSort('total_price_vat')}
-                  >
-                    Total Price (VAT)
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sortDirection={sortField === 'direction' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'direction'}
-                    direction={sortField === 'direction' ? sortDir : 'asc'}
-                    onClick={() => handleSort('direction')}
-                  >
-                    Direction
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sortDirection={sortField === 'status' ? sortDir : false}>
-                  <TableSortLabel
-                    active={sortField === 'status'}
-                    direction={sortField === 'status' ? sortDir : 'asc'}
-                    onClick={() => handleSort('status')}
-                  >
-                    Status
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Notes</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
+            <UnitsTableHead
+              sortField={sortField}
+              sortDir={sortDir}
+              onSort={handleSort}
+              priceSqmHeader="Price/m² (VAT)"
+              totalPriceHeader="Total Price (VAT)"
+            />
             <TableBody>
               {sorted.map((unit) => (
-                <UnitRow key={unit.id} unit={unit} onDelete={() => setDeleteTarget(unit)} />
+                <UnitRow
+                  key={unit.id}
+                  unit={unit}
+                  displayPriceSqm={unit.price_sqm_vat}
+                  displayTotalPrice={unit.total_price_vat}
+                  onDelete={() => setDeleteTarget(unit)}
+                />
               ))}
             </TableBody>
           </Table>
@@ -305,47 +210,5 @@ export default function UnitsPage({ params }: PageProps) {
         loading={deleting}
       />
     </Container>
-  )
-}
-
-interface UnitRowProps {
-  unit: Unit
-  onDelete: () => void
-}
-
-function UnitRow({ unit, onDelete }: UnitRowProps) {
-  const typeLabel      = UNIT_TYPE_LABELS[unit.unit_type as UnitType] ?? unit.unit_type
-  const statusLabel    = UNIT_STATUS_LABELS[unit.status as UnitStatus] ?? unit.status
-  const directionLabel = unit.direction
-    ? (UNIT_DIRECTION_LABELS[unit.direction as UnitDirection] ?? unit.direction)
-    : '—'
-
-  const identifier = unit.apartment_number ?? unit.identifier ?? '—'
-
-  return (
-    <TableRow hover>
-      <TableCell>{typeLabel}</TableCell>
-      <TableCell>{identifier}</TableCell>
-      <TableCell align="right">{formatNumber(unit.floor)}</TableCell>
-      <TableCell align="right">{formatArea(unit.net_area)}</TableCell>
-      <TableCell align="right">{formatArea(unit.total_area)}</TableCell>
-      <TableCell align="right">{formatPrice(unit.price_sqm_vat)}</TableCell>
-      <TableCell align="right">{formatPrice(unit.total_price_vat)}</TableCell>
-      <TableCell>{directionLabel}</TableCell>
-      <TableCell>{statusLabel}</TableCell>
-      <TableCell sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {unit.notes ?? '—'}
-      </TableCell>
-      <TableCell align="right">
-        <IconButton
-          size="small"
-          onClick={onDelete}
-          aria-label="delete unit"
-          sx={{ color: 'grey.500' }}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </TableCell>
-    </TableRow>
   )
 }

@@ -83,6 +83,8 @@ See `.claude/docs/DELEGATE_GUIDE.md` for detailed usage patterns.
 | `lib/supabase/projects.ts` | Projects CRUD service |
 | `lib/supabase/units.ts` | Units CRUD service |
 | `lib/supabase/searchFeedback.ts` | Search feedback CRUD service |
+| `lib/supabase/projectPaymentSchemes.ts` | Payment schemes CRUD service |
+| `lib/payment/parseScheme.ts` | Scheme name↔installments parsing utilities |
 | `app/api/extract/project/route.ts` | POST — server-side project extraction |
 | `app/api/extract/units/route.ts` | POST — server-side units extraction |
 | `app/api/extract/neighborhood/route.ts` | POST — server-side neighborhood extraction |

@@ -5,17 +5,18 @@
  *
  * Workflow:
  *  1. User pastes raw proposal text.
- *  2. "Extract with AI" → calls POST /api/extract/project (stub in Phase 4,
- *     real LangChain.js in Phase 3).
+ *  2. "Extract with AI" → calls POST /api/extract/project.
  *  3. After completion, a one-line stats caption shows duration and tokens.
  *  4. If a new neighborhood was extracted, a banner offers to save it first.
  *  5. User reviews extracted fields (editable) and picks a neighborhood.
- *  6. "Save" persists to Supabase via saveProject / updateProject.
+ *  6. "Save" persists to Supabase:
+ *       a. saveProject / updateProject (project row)
+ *       b. savePaymentScheme / updatePaymentScheme (default scheme row, if set)
+ *     If the scheme save fails after project save, a warning is shown rather
+ *     than rolling back the project (user can re-edit to retry).
  *
- * When `existing` is provided, fields pre-fill and extraction is bypassed.
- *
- * AI stub error handling: if the extraction endpoint returns non-2xx (e.g. 501
- * during Phase 4), the error is shown in the form — no crash.
+ * When `existing` is provided, fields pre-fill; the existing default scheme
+ * is loaded and shown in the PaymentScheduleEditor for review/adjustment.
  */
 
 import { useState, useEffect } from 'react'
@@ -35,6 +36,7 @@ import {
 } from '@mui/material'
 import { saveProject, updateProject } from '@/lib/supabase/projects'
 import { getNeighborhoods, saveNeighborhood } from '@/lib/supabase/neighborhoods'
+import { getDefaultPaymentScheme } from '@/lib/supabase/projectPaymentSchemes'
 import type { Project, ProjectInsert, Neighborhood, NeighborhoodInsert } from '@/types'
 import ProjectFields from './ProjectFields'
 import type { FieldValues } from './ProjectFields'
@@ -42,6 +44,7 @@ import {
   PROJECT_FORM_SAMPLE_TEXT,
   PROJECT_FORM_EMPTY_FIELDS,
   serializeExistingProject,
+  persistDefaultScheme,
 } from './ProjectForm.helpers'
 
 interface ExtractionMeta {
@@ -85,13 +88,30 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
     setPendingNeighborhood(null)
     if (existing) {
       setRawText(serializeExistingProject(existing))
-      setFields({ ...existing })
+      // Load existing project fields without default scheme (fetched separately below)
+      setFields({ ...existing, defaultPaymentScheme: null })
       setExtracted(true)
+      loadExistingScheme(existing.id)
     } else {
       setRawText(PROJECT_FORM_SAMPLE_TEXT)
       setFields(PROJECT_FORM_EMPTY_FIELDS)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, existing])
+
+  async function loadExistingScheme(projectId: string) {
+    try {
+      const scheme = await getDefaultPaymentScheme(projectId)
+      if (scheme) {
+        setFields((prev) => ({
+          ...prev,
+          defaultPaymentScheme: { name: scheme.name, installments: scheme.installments },
+        }))
+      }
+    } catch {
+      // Non-fatal — user can still edit the project without scheme data
+    }
+  }
 
   async function handleExtract() {
     const trimmed = rawText.trim()
@@ -110,7 +130,6 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
       })
 
       if (!response.ok) {
-        // 501 from stub or other error — show user-friendly message, don't crash
         const body = await response.json().catch(() => ({}))
         const msg = body?.error ?? 'AI extraction is not yet available'
         if (response.status === 501) {
@@ -122,7 +141,11 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
       }
 
       const result = await response.json()
-      setFields((prev) => ({ ...result.project, neighborhood_id: prev.neighborhood_id } as FieldValues))
+      setFields((prev) => ({
+        ...result.project,
+        neighborhood_id: prev.neighborhood_id,
+        defaultPaymentScheme: result.defaultScheme ?? null,
+      } as FieldValues))
       setMeta(result.meta)
       setExtracted(true)
 
@@ -160,12 +183,31 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
     setSaving(true)
     setError(null)
     try {
-      const payload: ProjectInsert = { ...fields }
+      // Extract defaultPaymentScheme from fields — not persisted on the project row
+      const { defaultPaymentScheme, ...projectPayload } = fields
+      const payload: ProjectInsert = { ...projectPayload }
+
+      let savedProjectId: string
       if (existing) {
         await updateProject(existing.id, payload)
+        savedProjectId = existing.id
       } else {
-        await saveProject(payload)
+        const saved = await saveProject(payload)
+        savedProjectId = saved.id
       }
+
+      const schemeWarning = await persistDefaultScheme(
+        savedProjectId,
+        defaultPaymentScheme,
+        Boolean(existing),
+      )
+      if (schemeWarning) {
+        setNotice(schemeWarning)
+        // Don't close — let user see the warning before dismissing
+        onSaved()
+        return
+      }
+
       onSaved()
       onClose()
     } catch (err) {
@@ -246,6 +288,7 @@ export default function ProjectForm({ open, onClose, onSaved, existing }: Props)
               neighborhoods={neighborhoods}
               setField={setField}
               numOrNull={numOrNull}
+              projectId={existing?.id}
             />
           )}
         </Stack>

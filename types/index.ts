@@ -8,5 +8,6 @@
 
 export * from './neighborhood'
 export * from './project'
+export * from './projectPaymentScheme'
 export * from './unit'
 export * from './searchFeedback'

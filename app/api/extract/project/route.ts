@@ -8,7 +8,8 @@
  * the user selects or saves a neighborhood in the form.
  *
  * Returns:
- *   200 { neighborhood?: NeighborhoodInsert; project: ExtractedProject; meta: ExtractionMeta }
+ *   200 { neighborhood?: NeighborhoodInsert; project: ExtractedProject;
+ *         defaultScheme: { name, installments } | null; meta: ExtractionMeta }
  *   400 { error: string }   — missing rawText
  *   401 { error: string }   — unauthenticated
  *   422 { error: string }   — project Zod validation failed
@@ -23,11 +24,22 @@ import { EXTRACTION_RULES } from '@/prompts/extractionRules'
 import { getUserCriteria } from '@/lib/supabase/userCriteria'
 import { projectInsertSchema } from '@/types/project'
 import { neighborhoodInsertSchema } from '@/types/neighborhood'
+import { parseSchemeNameToInstallments } from '@/lib/payment/parseScheme'
 import type { NeighborhoodInsert } from '@/types/neighborhood'
+import type { PaymentInstallmentData } from '@/types/projectPaymentScheme'
 import type { ExtractionMeta } from '@/lib/ai/types'
 
-const extractedProjectSchema = projectInsertSchema.omit({ neighborhood_id: true })
-type ExtractedProject = z.infer<typeof extractedProjectSchema>
+// Omit neighborhood_id — assigned by the caller after neighborhood selection
+const extractedProjectSchema = projectInsertSchema
+  .omit({ neighborhood_id: true })
+  // The AI returns payment_scheme_name (string or null) instead of
+  // the old payment_schedule array. Strip any residual payment_schedule
+  // field so the schema doesn't reject it, then add payment_scheme_name.
+  .extend({
+    payment_scheme_name: z.string().nullable().default(null),
+  })
+
+type ExtractedProject = Omit<z.infer<typeof extractedProjectSchema>, 'payment_scheme_name'>
 
 const RESPONSE_SHAPE_INSTRUCTIONS = `
 ### Response Format
@@ -56,14 +68,24 @@ The "project" object must use EXACTLY these field names:
   currency (string or null),
   price_sqm (number or null),
   price_date (string ISO 8601 or null),
-  payment_schedule (array of {percentage, trigger} or null),
+  payment_scheme_name (string or null) — the payment split as dash-separated percentages.
+    First number = % at signing (contract date). Last = % at Act 16 (completion/handover).
+    Any middle numbers = Act 14 then Act 15 stage payments.
+    Examples: "20-80" for 20% signing + 80% completion. "20-30-40-10" for a 4-stage scheme.
+    Set to null if the proposal does not mention a payment scheme.
   notes (string or null),
   ai_summary (string or null).
 `
 
+export interface DefaultScheme {
+  name: string
+  installments: PaymentInstallmentData[]
+}
+
 export interface ExtractProjectResponse {
   neighborhood?: NeighborhoodInsert
   project: ExtractedProject
+  defaultScheme: DefaultScheme | null
   meta: ExtractionMeta
 }
 
@@ -123,7 +145,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    const response: ExtractProjectResponse = { project: projectResult.data, meta }
+    // Separate payment_scheme_name from the rest of the project fields
+    const { payment_scheme_name, ...projectFields } = projectResult.data
+
+    // Convert the scheme name string to structured installments
+    const defaultScheme = buildDefaultScheme(payment_scheme_name)
+
+    const response: ExtractProjectResponse = {
+      project: projectFields,
+      defaultScheme,
+      meta,
+    }
 
     if (raw.neighborhood) {
       const neighborhoodResult = neighborhoodInsertSchema.safeParse(raw.neighborhood)
@@ -138,4 +170,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })
   }
+}
+
+/**
+ * Converts the AI-extracted scheme name string into a DefaultScheme object.
+ * Returns null if no name was extracted or the name could not be parsed.
+ */
+function buildDefaultScheme(schemeName: string | null): DefaultScheme | null {
+  if (!schemeName) return null
+  const installments = parseSchemeNameToInstallments(schemeName)
+  if (installments.length === 0) return null
+  return { name: schemeName, installments }
 }

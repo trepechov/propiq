@@ -1,325 +1,152 @@
 # Architecture Guide
 
-> **Context Loading**: This file is REFERENCED, not loaded. Main Claude should refer to this when making architectural decisions.
+> **Context Loading**: This file is REFERENCED, not loaded. Consult when making architectural decisions.
 >
 > **Related Docs**:
 > - `CODEBASE_MAP.md` - File locations, function tables, navigation
 > - `BUSINESS_LOGIC.md` - Domain-specific business rules and formulas
-> - `FRONTEND_DESIGN_SYSTEM.md` - UI patterns and styling (if applicable)
-
----
-
-**IMPORTANT: This is a template.** The "Project Overview" and "Project Structure" sections contain placeholders. When customizing:
-1. **REPLACE placeholder sections** with your actual project info
-2. **KEEP the Core Architectural Principles** - these are universal best practices
-3. **CUSTOMIZE the Quick Reference** section at the bottom
+> - `FRONTEND_DESIGN_SYSTEM.md` - UI patterns and styling
 
 ---
 
 ## Project Overview
 
-<!-- REPLACE this section with your project description -->
+**Project Name**: PropIQ
 
-**Project Name**: [Your Project Name]
-
-**Description**: [Brief description of what the project does]
+**Description**: AI-powered real estate proposal analyser. Users paste raw proposal text; Gemini extracts structured fields. Proposals are stored in Supabase, comparable in a sortable table, and queryable via natural language search.
 
 **Key Characteristics**:
-- [Architecture style, e.g., "Service-oriented architecture"]
-- [Application type, e.g., "Multi-tenant web application"]
-- [Key technologies, e.g., "Express + Next.js on single server"]
-- [Database, e.g., "PostgreSQL with Prisma ORM"]
-- [Auth approach, e.g., "JWT-based authentication"]
+- Next.js 15 App Router (single deployment)
+- All AI calls are server-side only (Route Handlers in `app/api/`)
+- Supabase for persistence and auth (`@supabase/ssr` cookie-based sessions)
+- Gemini via `@google/generative-ai` SDK — never imported client-side
+- MUI v7 component library
 
 ---
 
 ## Project Structure
 
-<!-- CUSTOMIZE: Replace with your actual project structure -->
-
-### Backend (`src/`)
-
 ```
-src/
-├── api/                    # REST API Layer
-│   ├── controllers/        # Request/response handlers
-│   ├── middleware/         # Express middleware
-│   └── routes/            # Route definitions
+propiq/
+├── app/
+│   ├── api/                    # Server-side Route Handlers (AI + data writes)
+│   │   ├── extract/            # Gemini extraction endpoints (project, units, neighborhood)
+│   │   └── search/             # Natural language search endpoint
+│   ├── (auth)/                 # Login / register pages
+│   └── (protected)/            # Authenticated pages (projects, units, search, etc.)
 │
-├── services/              # Core Business Logic
-│   ├── [domain]/          # Domain-specific services
-│   └── [domain]/          # Another domain
+├── components/                 # Shared React components
+├── context/                    # React Context (AuthContext)
+├── lib/
+│   ├── ai/                     # Gemini helpers (server.ts, searchHelpers.ts)
+│   ├── payment/                # Domain utilities for payment scheme parsing
+│   └── supabase/               # Data services (one file per entity)
 │
-├── [other-dirs]/          # Other directories as needed
-│
-└── index.ts              # Main entry point
+├── prompts/                    # AI prompt strings
+├── types/                      # Shared TypeScript types
+├── supabase/migrations/        # SQL migration files
+└── middleware.ts               # Auth-based route protection
 ```
-
-### Frontend (`frontend/src/`) (if applicable)
-
-```
-frontend/src/
-├── app/                   # Next.js App Router / Pages
-├── components/           # React components
-├── context/             # React Context
-├── hooks/               # Custom hooks
-└── lib/                 # Utilities
-```
-
-### Database (if applicable)
-
-**Key Models**:
-- `Model1` - Description
-- `Model2` - Description
 
 ---
 
-## Core Architectural Principles
+## Data Model
 
-### Code Organization Philosophy
+### Core Tables
 
-**Modular Design**
-- Keep files focused on a single, well-defined purpose
-- If scrolling multiple times is needed to understand a module, consider splitting it
-- Functions should generally fit within a single screen view when reasonable
-- Classes should have clear, cohesive responsibilities
+| Table | Description |
+|-------|-------------|
+| `projects` | Top-level real estate project records (title, location, developer, price, etc.) |
+| `units` | Individual units within a project (size, floor, price, etc.) |
+| `neighborhoods` | Area-level data linked to projects |
+| `project_payment_schemes` | Payment schemes per project — one default + optional alternatives |
+| `user_criteria` | Per-user AI evaluation criteria for NL search |
+| `search_feedback` | User feedback on NL search results |
 
-**Complexity Guidelines**
-- Monitor cyclomatic and cognitive complexity, not just line counts
-- Prioritize readability and maintainability over arbitrary size limits
-- Split code when it naturally separates into distinct concerns
-- Consider the "rule of three": extract common patterns after three occurrences
+### `project_payment_schemes` Schema
 
-### Separation of Concerns
+- `id` — UUID primary key
+- `project_id` — FK to `projects`
+- `name` — scheme label, e.g. `"20-80"`, `"30-30-40"` (matches `parseSchemeNameToInstallments` convention)
+- `installments` — JSONB array of `{ percentage, stage }` objects
+- `price_modifier_sqm` — flat EUR/m² delta on top of the project base price (0 for default scheme)
+- `is_default` — boolean; enforced at DB level via partial unique index: only one default per project
 
-**Layered Architecture**
-- **Presentation Layer**: User interface and user interaction handling
-- **Business Logic Layer**: Core domain logic and business rules
-- **Data Access Layer**: Data persistence and retrieval
-- **Integration Layer**: External system communications
-- **Cross-cutting Concerns**: Logging, security, configuration
-
-**Module Organization Patterns**
-```
-src/
-├── core/               # Core business logic and domain models
-├── interfaces/         # External interfaces (UI, API, CLI)
-├── infrastructure/     # Technical implementations
-├── shared/            # Shared utilities and common code
-└── config/            # Configuration management
-```
-
-### Single Responsibility Principle
-
-**Functions and Methods**
-- Each function should do ONE thing and do it well
-- Function names should clearly express their single purpose
-- If a function name contains "and" or multiple verbs, consider splitting
-- Pure functions (no side effects) are preferred where possible
-
-**Classes and Modules**
-- Each class should have ONE reason to change
-- Modules should export related functionality
-- Avoid "god classes" that know too much or do too much
-- Prefer composition over inheritance
-
-### Centralized Calculation Services (DRY Principle)
-
-**CRITICAL**: Key calculations should be centralized in dedicated service functions. DO NOT duplicate formulas inline - always use existing functions.
-
-<!-- CUSTOMIZE: Add your centralized functions here -->
-
-| Calculation | Function | Location | Purpose |
-|-------------|----------|----------|---------|
-| Example Calc | `calculateExample()` | `src/services/example/calculator.ts` | Does X |
-
-**Anti-Pattern to Avoid**:
-```typescript
-// BAD - Don't inline formulas
-const result = (value1 / value2) * factor; // Duplicates calculator logic
-
-// GOOD - Use centralized functions
-const result = calculator.calculateExample(value1, value2, factor);
-```
-
-### Configuration Resolution Pattern
-
-If your project uses layered configuration (e.g., system defaults → user defaults → instance overrides):
-
-**Resolution Order** (highest to lowest priority):
-1. **Instance override** - Value set on specific instance
-2. **User default** - User's personal default
-3. **System default** - Code-level default
-
-**Correct Pattern**:
-```typescript
-// Use the config service - it handles resolution
-const resolvedConfig = await configService.getResolvedConfig(instanceId);
-
-// Use resolved values directly - never null
-const value = resolvedConfig.someField;
-```
-
-**Anti-Pattern**:
-```typescript
-// BAD - Hardcoded fallbacks bypass user defaults
-const value = instance.field ?? 60;
-```
-
-## Design Patterns
-
-### Service Pattern
-- Encapsulate business logic in service classes
-- Services should be stateless when possible
-- Use dependency injection for service dependencies
-- Services handle one domain concept
-
-### Repository Pattern
-- Abstract data access behind interfaces
-- Repositories handle data persistence logic
-- Keep query logic separate from business logic
-- Support different data sources transparently
-
-### Factory Pattern
-- Use factories for complex object creation
-- Hide instantiation logic from consumers
-- Support different implementations
-- Centralize configuration-based creation
-
-### Observer Pattern
-- Implement event-driven architectures
-- Decouple components through events
-- Use for cross-cutting concerns
-- Enable extensibility without modification
-
-## Modularity Requirements
-
-**Module Characteristics**
-- High cohesion within modules
-- Low coupling between modules
-- Clear, well-defined interfaces
-- Independent testability
-- Single, focused purpose
-
-**Interface Design**
-- Design interfaces from the consumer's perspective
-- Keep interfaces small and focused
-- Use interface segregation principle
-- Document interface contracts clearly
-- Version interfaces when breaking changes occur
-
-## Code Quality Standards
-
-**Maintainability**
-- Write self-documenting code with clear naming
-- Keep functions small and focused
-- Avoid deep nesting (max 3-4 levels)
-- Extract complex conditionals into well-named functions
-- Use consistent patterns throughout the codebase
-
-**Dependency Management**
-- Depend on abstractions, not concretions
-- Higher-level modules shouldn't depend on lower-level modules
-- Both should depend on abstractions
-- No circular dependencies allowed
-- Minimize coupling between modules
-
-**Error Handling**
-- Fail fast with clear error messages
-- Handle errors at the appropriate level
-- Use structured error types/classes
-- Log errors with sufficient context
-- Never silently swallow exceptions
-
-## Performance Considerations
-
-**Optimization Guidelines**
-- Profile before optimizing
-- Optimize algorithms before micro-optimizations
-- Consider time and space complexity
-- Cache expensive computations appropriately
-- Use lazy loading and pagination for large datasets
-
-**Resource Management**
-- Clean up resources properly (connections, handles, subscriptions)
-- Implement proper connection pooling
-- Monitor memory usage and leaks
-- Use streaming for large data processing
-- Implement appropriate timeouts
-
-## Warning Signs - Technical Debt Indicators
-
-**Architecture Smells**
-- Shotgun surgery (one change requires many file modifications)
-- Feature envy (modules excessively interested in other modules)
-- Inappropriate intimacy (modules know too much about each other)
-- Large classes/modules doing too much
-- Divergent change (module changes for multiple reasons)
-
-**Code Smells**
-- Long parameter lists
-- Duplicate code blocks
-- Dead code
-- Speculative generality
-- Temporary fields
-- Message chains
-- Middle man classes
-
-**Process Smells**
-- Increasing bug rates
-- Longer development cycles
-- Difficult deployments
-- Frequent hotfixes
-- Developer frustration
-
-## Refactoring Triggers
-
-**Consider Refactoring When:**
-- Code is duplicated in three or more places
-- A function/class has multiple responsibilities
-- Deep nesting makes code hard to follow
-- Comments are needed to explain what code does
-- Making a change requires modifications in multiple unrelated places
-- Test setup is complex and fragile
-- Performance bottlenecks are identified
-- Security vulnerabilities are discovered
+**Default scheme enforcement**: A partial unique index `WHERE is_default = true` on `(project_id, is_default)` prevents multiple defaults at the database level without needing application-level guards.
 
 ---
 
-## Quick Reference
+## Architectural Principles
 
-<!-- CUSTOMIZE: Add your project-specific quick reference -->
+### AI Calls Are Always Server-Side
 
-### Where to Put New Code
+All Gemini calls live in Route Handlers under `app/api/`. The `GEMINI_API_KEY` has no `NEXT_PUBLIC_` prefix — Next.js never bundles it into client code. Client components call the Route Handlers; they never import `@google/generative-ai`.
 
-| New Code Type | Location | Example |
-|---------------|----------|---------|
-| Calculation logic | `src/services/<domain>/` | Pricing logic → `src/services/pricing/` |
-| API endpoint | `src/api/routes/` + `src/api/controllers/` | Add route + handler |
-| UI component | `frontend/src/components/<category>/` | Form → `components/form/` |
-| Database model | `prisma/schema.prisma` | Add model, run migrate |
-| New service | `src/services/<domain>/<name>.service.ts` | Export from index.ts |
+### Supabase Client Split
 
-### Common Patterns
+Two distinct clients:
+- `lib/supabase/client.ts` — browser client (anon key, no cookies). Used in client components.
+- `lib/supabase/server.ts` — server client (cookie-based session). Used in Route Handlers and Server Components.
 
-<!-- CUSTOMIZE: Add your project-specific patterns -->
+Never use the server client in client components or vice versa.
 
-**Reading Configuration**:
-```typescript
-const config = await configService.getEffectiveConfig(id);
-```
+### Services Are Plain Functions
 
-**Database Transaction**:
-```typescript
-await prisma.$transaction(async (tx) => {
-  // All operations succeed or all fail
-});
-```
+Data services (e.g., `lib/supabase/projects.ts`) export plain async functions — not classes. Types are co-located in the same file as the service that owns them.
 
-**Broadcasting Events**:
-```typescript
-eventEmitter.emit('eventName', { data });
-```
+### `lib/payment/` — Domain Utility Layer
+
+`lib/payment/parseScheme.ts` handles the conversion between scheme name strings (e.g. `"20-80"`) and structured installment arrays. This is pure computation — no DB or AI calls. It is the single source of truth for name-to-installments mapping and is used by both the extraction pipeline and the UI.
+
+---
+
+## Key Patterns
+
+### Component State Ownership: PaymentSchemesPanel
+
+`PaymentSchemesPanel` fetches and owns its own schemes state from the DB directly — schemes are not passed in as props from the parent form. This is intentional.
+
+**Why**: When a new project is saved, the parent form sets `projectId` and triggers a reload. If schemes were passed as props, there is a race where the tab panel receives the new `projectId` before the parent has finished re-fetching — causing the panel to render with a stale or empty schemes list. By fetching internally on `projectId` change, the panel controls its own data lifecycle and avoids this race.
+
+**Pattern rule**: Components that manage a sub-entity linked by a foreign key (e.g., schemes linked to a project) should own their own fetch rather than receive the sub-entity list from a parent that is also transitioning state.
+
+### Centralized Scheme Name Parsing (DRY)
+
+`parseSchemeNameToInstallments` and `installmentsToSchemeName` in `lib/payment/parseScheme.ts` are the authoritative conversion functions. Do not inline scheme-name parsing logic anywhere else.
+
+### Extraction Contract Stability
+
+The Gemini extraction prompt contract (field names, output shape) must remain stable. Only call sites change. Validate all Gemini output with Zod before writing to Supabase.
+
+For payment schemes: extraction produces a `payment_scheme_name` string (e.g. `"20-80"`), which is then converted to an installments array via `parseSchemeNameToInstallments` before DB insertion.
+
+### Search Context Injection
+
+`lib/ai/searchHelpers.ts` builds the AI prompt context for NL search. It accepts schemes alongside project data and injects a structured "Payment Schemes:" block so the AI can reason about payment flexibility across projects. All schemes (default + alternatives) must be included — see `BUSINESS_LOGIC.md` for the rationale.
+
+---
+
+## Where to Put New Code
+
+| New Code Type | Location |
+|---------------|----------|
+| Gemini AI call | `app/api/<feature>/route.ts` (Route Handler, server-only) |
+| Supabase CRUD service | `lib/supabase/<entity>.ts` |
+| Domain computation (no DB/AI) | `lib/<domain>/<name>.ts` |
+| Shared React component | `components/<ComponentName>.tsx` |
+| Page | `app/(protected)/<feature>/page.tsx` |
+| DB migration | `supabase/migrations/<NNN>_<description>.sql` |
+| TypeScript type for DB entity | Co-locate in `types/<entity>.ts` or in the service file |
+| AI prompt string | `prompts/<name>.ts` |
+
+---
+
+## Warning Signs
+
+- **Gemini import in a non-route file**: `@google/generative-ai` must never appear outside `app/api/` or `lib/ai/`.
+- **Server client in client component**: `lib/supabase/server.ts` must not be imported in any `"use client"` file.
+- **Inline scheme name parsing**: Any code that manually splits a `"20-80"` string instead of calling `parseSchemeNameToInstallments` is a DRY violation.
+- **Props threading schemes through parent**: If a parent component is also reloading on project save, pass `projectId` to the child and let it fetch its own data.
 
 ---
 
@@ -327,6 +154,6 @@ eventEmitter.emit('eventName', { data });
 
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
-| [CODEBASE_MAP.md](./CODEBASE_MAP.md) | File locations, function tables | Navigating code, finding implementations |
-| [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md) | Domain business rules, formulas | Understanding domain logic |
-| [FRONTEND_DESIGN_SYSTEM.md](./FRONTEND_DESIGN_SYSTEM.md) | UI patterns, CSS, styling | Frontend component styling |
+| [CODEBASE_MAP.md](./CODEBASE_MAP.md) | File locations, function tables | Finding code, navigating the project |
+| [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md) | Domain rules, payment scheme logic | Understanding domain decisions |
+| [FRONTEND_DESIGN_SYSTEM.md](./FRONTEND_DESIGN_SYSTEM.md) | UI component patterns, MUI styling | Building or modifying UI |

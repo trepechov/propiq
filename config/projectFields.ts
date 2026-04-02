@@ -14,7 +14,7 @@ import { BuildingStage, BUILDING_STAGE_LABELS } from './domain'
 export interface ProjectField {
   key: string
   label: string
-  type: FieldType | 'enum' | 'payment_schedule'
+  type: FieldType | 'enum' | 'payment_scheme_name'
   unit?: string
   required: boolean
   /** Hint injected into the Gemini extraction prompt for this field */
@@ -140,15 +140,16 @@ export const projectFields: ProjectField[] = [
 
   // ── Payment ────────────────────────────────────────────────────────────────
   {
-    key: 'payment_schedule',
-    label: 'Payment Schedule',
-    type: 'payment_schedule',
+    key: 'payment_scheme_name',
+    label: 'Payment Scheme',
+    type: 'payment_scheme_name',
     required: false,
     extractionHint:
-      'Payment plan as a list of installments. Each installment has: ' +
-      '"percentage" (number) and "trigger" (one of: "signing", "act14", "act15", "act16"). ' +
-      'Example for 20-80: [{"percentage":20,"trigger":"signing"},{"percentage":80,"trigger":"act16"}]. ' +
-      'Return an array of objects.',
+      'Payment plan as a dash-separated string of percentages. ' +
+      'First number = % at signing, last = % at Act 16 (completion). ' +
+      'Any middle numbers = Act 14 then Act 15 stage payments. ' +
+      'Examples: "20-80" (2-stage), "20-30-40-10" (4-stage). ' +
+      'Return null if no payment scheme is mentioned.',
   },
 
   // ── Notes ──────────────────────────────────────────────────────────────────

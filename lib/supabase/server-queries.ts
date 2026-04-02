@@ -12,6 +12,60 @@ import { createClient } from './server'
 import type { Project } from '../../types/project'
 import type { Unit } from '../../types/unit'
 import type { SearchFeedback } from '../../types/searchFeedback'
+import type { ProjectPaymentScheme } from '../../types/projectPaymentScheme'
+
+/**
+ * Bulk query: returns a map of project_id → default scheme name
+ * for a list of project ids. Single query with IN clause — no N+1 queries.
+ *
+ * Used by the projects list page to populate the "Default Scheme" column.
+ * Projects without a default scheme are absent from the returned map.
+ */
+export async function getDefaultSchemeNamesServer(
+  projectIds: string[],
+): Promise<Record<string, string>> {
+  if (projectIds.length === 0) return {}
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('project_payment_schemes')
+    .select('project_id, name')
+    .in('project_id', projectIds)
+    .eq('is_default', true)
+
+  if (error) throw new Error(`getDefaultSchemeNamesServer failed: ${error.message}`)
+  return Object.fromEntries(data.map((row) => [row.project_id, row.name]))
+}
+
+/**
+ * Returns all payment schemes for a list of project IDs, grouped by project_id.
+ * Used by the search route to inject scheme context into the AI prompt.
+ *
+ * Ordered default-first, then by name — so the default scheme appears first
+ * in prompt context and optional alternatives follow in predictable order.
+ */
+export async function getAllSchemesByProjectServer(
+  projectIds: string[],
+): Promise<Record<string, ProjectPaymentScheme[]>> {
+  if (projectIds.length === 0) return {}
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('project_payment_schemes')
+    .select('*')
+    .in('project_id', projectIds)
+    .order('is_default', { ascending: false })
+    .order('name')
+
+  if (error) throw new Error(`getAllSchemesByProjectServer failed: ${error.message}`)
+
+  const map: Record<string, ProjectPaymentScheme[]> = {}
+  for (const scheme of data) {
+    if (!map[scheme.project_id]) map[scheme.project_id] = []
+    map[scheme.project_id].push(scheme)
+  }
+  return map
+}
 
 /** Returns all projects ordered by title. */
 export async function getProjectsServer(): Promise<Project[]> {

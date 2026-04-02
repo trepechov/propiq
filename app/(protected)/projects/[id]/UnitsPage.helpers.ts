@@ -1,10 +1,44 @@
 /**
- * Sort comparator and filter config builder for the Units table.
- * Extracted to keep page.tsx within the 300-line limit.
+ * Sort comparator, filter config builder, and price-adjustment helper
+ * for the Units table. Extracted to keep page.tsx within the 300-line limit.
  */
 
 import type { Unit } from '@/types'
 import type { FilterConfig } from '@/hooks/useTableFilter'
+
+// ── Price adjustment ──────────────────────────────────────────────────────────
+
+export interface AdjustedPrices {
+  priceSqm: number | null
+  totalPrice: number | null
+}
+
+/**
+ * Applies a flat per-m² scheme modifier to a unit's prices.
+ *
+ * Business rule: unit prices are stored for the default scheme (modifier = 0).
+ * Alternative schemes add or subtract a flat amount per m².
+ * Total price is recalculated as `total_area × adjusted_price_sqm`.
+ * If `total_area` is null, `totalPrice` is null — we can't recalculate without area.
+ *
+ * @param unit - The unit whose stored prices are the default-scheme baseline
+ * @param modifierSqm - Signed flat adjustment in the project's currency per m²
+ */
+export function applySchemeModifier(unit: Unit, modifierSqm: number): AdjustedPrices {
+  if (modifierSqm === 0) {
+    return { priceSqm: unit.price_sqm_vat, totalPrice: unit.total_price_vat }
+  }
+
+  const priceSqm = unit.price_sqm_vat != null
+    ? unit.price_sqm_vat + modifierSqm
+    : null
+
+  const totalPrice = unit.total_area != null && priceSqm != null
+    ? unit.total_area * priceSqm
+    : null
+
+  return { priceSqm, totalPrice }
+}
 import {
   UNIT_TYPE_LABELS,
   UNIT_STATUS_LABELS,

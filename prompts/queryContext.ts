@@ -20,7 +20,8 @@ off-plan and new-build residential property opportunities.
 ## What You Know
 You have access to a structured database of real estate projects and their
 individual units. Each project includes: location, developer, building stage,
-payment schedule, price per sqm, gross yield, and an AI-generated summary.
+payment schemes (default and optional alternatives with price modifiers),
+price per sqm, gross yield, and an AI-generated summary.
 Each unit includes: floor, orientation, area, price, and availability status.
 `
 

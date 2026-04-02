@@ -12,6 +12,7 @@ import { FeedbackRating } from '../../types/searchFeedback'
 import type { Project } from '../../types/project'
 import type { Unit } from '../../types/unit'
 import type { SearchFeedback } from '../../types/searchFeedback'
+import type { ProjectPaymentScheme } from '../../types/projectPaymentScheme'
 import type { ExtractionMeta } from './types'
 
 // ── Result types ──────────────────────────────────────────────────────────────
@@ -21,6 +22,8 @@ export interface OpportunityResult {
   unit?: Unit
   reason: string
   score?: number
+  /** All payment schemes for the project (default first, then optional). */
+  schemes?: ProjectPaymentScheme[]
 }
 
 export interface SearchResult {
@@ -62,10 +65,66 @@ Each OpportunityResult must have EXACTLY these fields:
 
 // ── Context builders ──────────────────────────────────────────────────────────
 
+/**
+ * Maps a raw installment trigger code to a human-readable label.
+ * Trigger values come from the DB (e.g. "act16") and must be readable
+ * to the AI so it can reason about payment timing and investor appeal.
+ */
+function formatTrigger(trigger: string): string {
+  const TRIGGER_LABELS: Record<string, string> = {
+    signing: 'signing',
+    act14:   'Act 14',
+    act15:   'Act 15',
+    act16:   'Act 16',
+  }
+  return TRIGGER_LABELS[trigger] ?? trigger
+}
+
+/**
+ * Formats a single scheme's installments as a compact summary.
+ * Example: "20% signing → 30% Act 14 → 50% Act 16"
+ */
+function formatInstallmentSummary(scheme: ProjectPaymentScheme): string {
+  return scheme.installments
+    .map((i) => `${i.percentage}% ${formatTrigger(i.trigger)}`)
+    .join(' → ')
+}
+
+/**
+ * Formats the price modifier badge for non-default schemes.
+ * Positive modifier = premium on top of base price.
+ * Negative modifier = discount off base price.
+ */
+function formatModifier(scheme: ProjectPaymentScheme): string {
+  if (scheme.price_modifier_sqm === 0) return ''
+  const abs = Math.abs(scheme.price_modifier_sqm)
+  return scheme.price_modifier_sqm > 0
+    ? ` (+${abs} EUR/m² on top of base)`
+    : ` (−${abs} EUR/m² discount)`
+}
+
+/**
+ * Builds the Payment Schemes block for a project's AI context entry.
+ * Shows all schemes so the AI can reason about payment flexibility —
+ * e.g. a project with a 20-80 optional scheme is more investor-friendly
+ * than one with only a 90-10 scheme.
+ */
+function buildSchemesBlock(schemes: ProjectPaymentScheme[]): string {
+  if (schemes.length === 0) return ''
+  const lines = schemes.map((s) => {
+    const tag      = s.is_default ? '[DEFAULT]' : '[OPTIONAL]'
+    const summary  = formatInstallmentSummary(s)
+    const modifier = formatModifier(s)
+    return `  • ${s.name} ${tag} — ${summary}${modifier}`
+  })
+  return `Payment Schemes:\n${lines.join('\n')}`
+}
+
 /** Returns a compact text summary for one project + its available units. */
 export function buildProjectContext(
   project: Project,
   availableUnits: Unit[],
+  schemes: ProjectPaymentScheme[] = [],
 ): string {
   const header = project.ai_summary
     ? `### ${project.title} (ID: ${project.id})\n${project.ai_summary}`
@@ -79,8 +138,10 @@ export function buildProjectContext(
         .filter(Boolean)
         .join('\n')
 
+  const schemesBlock = buildSchemesBlock(schemes)
+
   if (availableUnits.length === 0) {
-    return `${header}\nAvailable units: 0`
+    return [header, schemesBlock, 'Available units: 0'].filter(Boolean).join('\n')
   }
 
   const prices = availableUnits
@@ -112,19 +173,21 @@ export function buildProjectContext(
 
   return [
     header,
+    ...(schemesBlock ? [schemesBlock] : []),
     `Available units: ${availableUnits.length}, price range: ${priceRange}`,
     ...unitLines,
     ...(moreNote ? [moreNote] : []),
   ].join('\n')
 }
 
-/** Builds the full context block from all projects + units. */
+/** Builds the full context block from all projects, units, and payment schemes. */
 export function buildContextBlock(
   projects: Project[],
   unitsByProject: Map<string, Unit[]>,
+  schemesByProject: Record<string, ProjectPaymentScheme[]> = {},
 ): string {
   const sections = projects.map((p) =>
-    buildProjectContext(p, unitsByProject.get(p.id) ?? []),
+    buildProjectContext(p, unitsByProject.get(p.id) ?? [], schemesByProject[p.id] ?? []),
   )
   return `## Available Projects and Units\n\n${sections.join('\n\n')}`
 }
@@ -168,19 +231,23 @@ export function buildFeedbackContext(
 
 // ── Result resolver ───────────────────────────────────────────────────────────
 
-/** Resolves raw Gemini UUIDs into full Project and Unit objects. */
+/** Resolves raw Gemini UUIDs into full Project, Unit, and scheme objects. */
 export function resolveResult(
   raw: z.infer<typeof rawOpportunitySchema>,
   projectMap: Map<string, Project>,
   unitMap: Map<string, Unit>,
+  schemesByProject: Record<string, ProjectPaymentScheme[]> = {},
 ): OpportunityResult | null {
   const project = projectMap.get(raw.project_id)
   if (!project) return null
 
+  const schemes = schemesByProject[raw.project_id]
+
   const result: OpportunityResult = {
     project,
     reason: raw.reason,
-    ...(raw.score !== null ? { score: raw.score } : {}),
+    ...(raw.score  !== null      ? { score:   raw.score } : {}),
+    ...(schemes?.length          ? { schemes }             : {}),
   }
 
   if (raw.unit_id) {

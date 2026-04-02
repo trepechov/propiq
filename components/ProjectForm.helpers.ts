@@ -3,6 +3,11 @@
  * the 300-line file limit while keeping the UI component focused.
  */
 
+import {
+  savePaymentScheme,
+  updatePaymentScheme,
+  getDefaultPaymentScheme,
+} from '@/lib/supabase/projectPaymentSchemes'
 import type { Project } from '@/types'
 import { BuildingStage } from '@/config/domain'
 import type { FieldValues } from './ProjectFields'
@@ -36,9 +41,61 @@ export const PROJECT_FORM_EMPTY_FIELDS: FieldValues = {
   currency: null,
   price_sqm: null,
   price_date: null,
-  payment_schedule: null,
   notes: null,
   ai_summary: null,
+  defaultPaymentScheme: null,
+}
+
+/**
+ * Saves or updates the default payment scheme for a project after the project
+ * row has been saved.
+ *
+ * Returns a warning message string if the scheme save fails (non-fatal —
+ * the project row already exists and the user can re-edit to retry).
+ * Returns null on success.
+ */
+export async function persistDefaultScheme(
+  projectId: string,
+  scheme: FieldValues['defaultPaymentScheme'],
+  isEdit: boolean,
+): Promise<string | null> {
+  if (!scheme || scheme.installments.length === 0) return null
+
+  try {
+    if (isEdit) {
+      const existing = await getDefaultPaymentScheme(projectId)
+      if (existing) {
+        await updatePaymentScheme(existing.id, {
+          name: scheme.name,
+          installments: scheme.installments,
+        })
+      } else {
+        await savePaymentScheme({
+          project_id: projectId,
+          name: scheme.name,
+          installments: scheme.installments,
+          is_default: true,
+          price_modifier_sqm: 0,
+          notes: null,
+        })
+      }
+    } else {
+      await savePaymentScheme({
+        project_id: projectId,
+        name: scheme.name,
+        installments: scheme.installments,
+        is_default: true,
+        price_modifier_sqm: 0,
+        notes: null,
+      })
+    }
+    return null
+  } catch {
+    return (
+      'Project saved, but the default payment scheme could not be saved. ' +
+      'Edit the project to retry.'
+    )
+  }
 }
 
 /**

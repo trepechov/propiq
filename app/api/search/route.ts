@@ -28,6 +28,7 @@ import {
   type SearchResult,
 } from '@/lib/ai/searchHelpers'
 import {
+  getAllSchemesByProjectServer,
   getProjectsServer,
   getUnitsServer,
   getSearchFeedbackServer,
@@ -70,12 +71,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       getUserCriteria(supabase, user.id, 'evaluation_criteria', EVALUATION_CRITERIA),
     ])
 
+    // Fetch all schemes for context — done after projects so we have their IDs.
+    // Separate from the parallel block above to avoid the chicken-and-egg problem.
+    const schemesByProject = await getAllSchemesByProjectServer(projects.map((p) => p.id))
+
     // Build lookup maps
     const projectMap = buildProjectMap(projects)
     const { unitsByProject, unitMap } = buildUnitMaps(projects, allUnits)
 
     // Build prompt
-    const contextBlock    = buildContextBlock(projects, unitsByProject)
+    const contextBlock    = buildContextBlock(projects, unitsByProject, schemesByProject)
     const feedbackContext = buildFeedbackContext(feedback, projects)
 
     const prompt = [
@@ -111,13 +116,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // Resolve UUIDs to full objects
+    // Resolve UUIDs to full objects, attaching scheme data to each result
     const matching = validation.data.matching
-      .map((r) => resolveResult(r, projectMap, unitMap))
+      .map((r) => resolveResult(r, projectMap, unitMap, schemesByProject))
       .filter((r): r is OpportunityResult => r !== null)
 
     const nonMatching = validation.data.nonMatching
-      .map((r) => resolveResult(r, projectMap, unitMap))
+      .map((r) => resolveResult(r, projectMap, unitMap, schemesByProject))
       .filter((r): r is OpportunityResult => r !== null)
 
     return NextResponse.json({ matching, nonMatching, meta } satisfies SearchResult)

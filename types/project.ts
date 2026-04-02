@@ -9,7 +9,10 @@
 
 import { z } from 'zod'
 import { BuildingStage } from '../config/domain'
-import type { PaymentInstallment } from '../config/domain'
+
+// Re-export for backward compatibility — the canonical definition lives in
+// types/projectPaymentScheme.ts alongside the payment-scheme Zod schema.
+export { paymentInstallmentSchema } from './projectPaymentScheme'
 
 // ── TypeScript interface ──────────────────────────────────────────────────────
 
@@ -17,7 +20,7 @@ import type { PaymentInstallment } from '../config/domain'
  * Matches the `projects` table in Supabase exactly.
  * Numeric DB columns (integer, numeric) map to `number`.
  * Date columns (date) are returned as ISO 8601 strings by Supabase JS client.
- * `payment_schedule` is stored as jsonb and deserialized to typed objects.
+ * `payment_schedule` column has been replaced by the `project_payment_schemes` table.
  */
 export interface Project {
   id: string
@@ -39,8 +42,6 @@ export interface Project {
   currency: string | null
   price_sqm: number | null
   price_date: string | null
-  // Payment schedule — jsonb deserialized to typed objects
-  payment_schedule: PaymentInstallment[] | null
   // Notes
   notes: string | null
   ai_summary: string | null
@@ -52,18 +53,10 @@ export type ProjectInsert = Omit<Project, 'id' | 'created_at' | 'updated_at'>
 // ── Zod schema ────────────────────────────────────────────────────────────────
 
 /**
- * Payment installment sub-schema — mirrors the PaymentInstallment interface.
- * `trigger` is kept as a plain string to match the jsonb storage format.
- */
-const paymentInstallmentSchema = z.object({
-  percentage: z.number().min(0).max(100),
-  trigger: z.string(),
-})
-
-/**
  * Validates Gemini extraction output for a project.
  * `neighborhood_id` and `title` are required.
  * `current_stage` must be one of the BuildingStage values.
+ * `payment_schedule` has been removed — handled by project_payment_schemes table.
  */
 export const projectSchema = z.object({
   neighborhood_id: z.string().uuid(),
@@ -84,8 +77,6 @@ export const projectSchema = z.object({
   currency: z.string().nullable().default(null),
   price_sqm: z.number().nullable().default(null),
   price_date: z.string().nullable().default(null),
-  // Payment schedule
-  payment_schedule: z.array(paymentInstallmentSchema).nullable().default(null),
   // Notes
   notes: z.string().nullable().default(null),
   ai_summary: z.string().nullable().default(null),

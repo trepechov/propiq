@@ -19,6 +19,7 @@ import {
 import FeedbackWidget from '@/components/FeedbackWidget'
 import { MatchType } from '@/types'
 import type { MatchType as MatchTypeT, Project, Unit } from '@/types'
+import type { ProjectPaymentScheme } from '@/types/projectPaymentScheme'
 
 // ── Result types (mirrored from searchOpportunities — Phase 3 will use these) ─
 
@@ -27,6 +28,8 @@ export interface OpportunityResult {
   unit?: Unit
   reason: string
   score?: number
+  /** All payment schemes for the project (default first, then optional). */
+  schemes?: ProjectPaymentScheme[]
 }
 
 export interface SearchResult {
@@ -75,6 +78,74 @@ function UnitSummary({ result }: UnitSummaryProps) {
   )
 }
 
+// ── Payment schemes display ───────────────────────────────────────────────────
+
+interface PaymentSchemesDisplayProps {
+  schemes: ProjectPaymentScheme[]
+}
+
+function PaymentSchemesDisplay({ schemes }: PaymentSchemesDisplayProps) {
+  if (schemes.length === 0) return null
+
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+        Payment Schemes
+      </Typography>
+      <Stack direction="row" flexWrap="wrap" gap={0.5}>
+        {schemes.map((scheme) => (
+          <SchemeChip key={scheme.id} scheme={scheme} />
+        ))}
+      </Stack>
+    </Box>
+  )
+}
+
+interface SchemeChipProps {
+  scheme: ProjectPaymentScheme
+}
+
+function SchemeChip({ scheme }: SchemeChipProps) {
+  if (scheme.is_default) {
+    return (
+      <Chip
+        label={`${scheme.name} (default)`}
+        size="small"
+        variant="outlined"
+        color="default"
+      />
+    )
+  }
+
+  const modifier = scheme.price_modifier_sqm
+  const modifierLabel =
+    modifier > 0
+      ? `+${modifier} EUR/m²`
+      : modifier < 0
+        ? `−${Math.abs(modifier)} EUR/m²`
+        : null
+
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.25}>
+      <Chip
+        label={scheme.name}
+        size="small"
+        variant="outlined"
+        color="primary"
+      />
+      {modifierLabel !== null && (
+        <Typography
+          variant="caption"
+          color={modifier > 0 ? 'error.main' : 'success.main'}
+          fontWeight={600}
+        >
+          {modifierLabel}
+        </Typography>
+      )}
+    </Stack>
+  )
+}
+
 // ── Opportunity card ──────────────────────────────────────────────────────────
 
 interface OpportunityCardProps {
@@ -118,6 +189,11 @@ export function OpportunityCard({ result, matchType, queryText }: OpportunityCar
 
           {/* Unit info (if applicable) */}
           <UnitSummary result={result} />
+
+          {/* Payment schemes */}
+          {result.schemes && result.schemes.length > 0 && (
+            <PaymentSchemesDisplay schemes={result.schemes} />
+          )}
 
           {/* Reason */}
           <Typography variant="body2" sx={{ mt: 0.5 }}>
@@ -172,7 +248,7 @@ export function ResultsColumn({
         <Stack spacing={1.5}>
           {results.map((r) => (
             <OpportunityCard
-              key={`${r.project.id}-${r.unit?.id ?? 'project'}`}
+              key={`${matchType}-${r.project.id}-${r.unit?.id ?? 'none'}`}
               result={r}
               matchType={matchType}
               queryText={queryText}

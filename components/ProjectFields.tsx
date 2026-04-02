@@ -5,8 +5,19 @@
  *
  * Renders all editable project fields once AI extraction has completed.
  * Kept in a separate file to keep ProjectForm.tsx within the 300-line limit.
+ *
+ * `FieldValues` extends `ProjectInsert` with `defaultPaymentScheme` — the
+ * extracted or manually entered default payment scheme (saved separately to
+ * the `project_payment_schemes` table on project save).
+ *
+ * Payment scheme section behaviour:
+ *   - New project (no projectId): renders PaymentScheduleEditor so the user
+ *     can review/adjust the AI-extracted default scheme before saving.
+ *   - Existing project (projectId provided): renders the full PaymentSchemesPanel
+ *     so the user can manage all schemes (default + alternatives) inline.
  */
 
+import { } from 'react'
 import {
   FormControl,
   InputLabel,
@@ -14,17 +25,32 @@ import {
   Select,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material'
 import type { ProjectInsert, Neighborhood } from '@/types'
 import { BuildingStage, BUILDING_STAGE_LABELS } from '@/config/domain'
+import type { PaymentInstallmentData } from '@/types/projectPaymentScheme'
+import PaymentScheduleEditor from './PaymentScheduleEditor'
+import type { PaymentScheduleValue } from './PaymentScheduleEditor'
+import PaymentSchemesPanel from './PaymentSchemesPanel'
 
-export type FieldValues = Omit<ProjectInsert, 'neighborhood_id'> & { neighborhood_id: string }
+export interface DefaultPaymentScheme {
+  name: string
+  installments: PaymentInstallmentData[]
+}
+
+export type FieldValues = Omit<ProjectInsert, 'neighborhood_id'> & {
+  neighborhood_id: string
+  defaultPaymentScheme: DefaultPaymentScheme | null
+}
 
 export interface ProjectFieldsProps {
   fields: FieldValues
   neighborhoods: Neighborhood[]
   setField: <K extends keyof FieldValues>(key: K, value: FieldValues[K]) => void
   numOrNull: (raw: string) => number | null
+  /** Present when editing an existing project — enables full PaymentSchemesPanel. */
+  projectId?: string
 }
 
 export default function ProjectFields({
@@ -32,7 +58,20 @@ export default function ProjectFields({
   neighborhoods,
   setField,
   numOrNull,
+  projectId,
 }: ProjectFieldsProps) {
+  function handleSchemeChange(schemeValue: PaymentScheduleValue) {
+    setField('defaultPaymentScheme', {
+      name: schemeValue.name,
+      installments: schemeValue.installments,
+    })
+  }
+
+  const schemeEditorValue: PaymentScheduleValue = {
+    name: fields.defaultPaymentScheme?.name ?? '',
+    installments: fields.defaultPaymentScheme?.installments ?? [],
+  }
+
   return (
     <>
       <TextField
@@ -156,6 +195,23 @@ export default function ProjectFields({
         onChange={(e) => setField('building_notes', e.target.value || null)}
         fullWidth
       />
+
+      {projectId ? (
+        <PaymentSchemesPanel
+          projectId={projectId}
+          currency={fields.currency}
+        />
+      ) : (
+        <>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+            Default Payment Scheme
+          </Typography>
+          <PaymentScheduleEditor
+            value={schemeEditorValue}
+            onChange={handleSchemeChange}
+          />
+        </>
+      )}
     </>
   )
 }

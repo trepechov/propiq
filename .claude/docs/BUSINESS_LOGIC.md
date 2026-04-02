@@ -181,4 +181,70 @@ PENDING → CONFIRMED → SHIPPED → DELIVERED
 
 ---
 
+## Payment Schemes in AI Search
+
+Each project has one default payment scheme and optionally multiple alternative schemes.
+The default scheme represents the base unit prices (`price_modifier_sqm = 0`).
+Alternative schemes have a flat EUR/m² modifier (positive = premium, negative = discount).
+
+When building AI search context, ALL schemes for a project must be included so the AI
+can reason about payment flexibility. Example: a project with a 20-80 optional scheme
+is more investor-friendly than one with only a 90-10 scheme, even if 90-10 is the default.
+
+The search context format per project:
+```
+Payment Schemes:
+  • [name] [DEFAULT|OPTIONAL] — [installments summary] ([modifier description])
+```
+
+Installment trigger mapping (DB value → prompt label):
+- `signing` → `signing`
+- `act14` → `Act 14`
+- `act15` → `Act 15`
+- `act16` → `Act 16`
+
+Evaluation criteria (in `evaluationCriteria.ts`) teaches the AI:
+- 20-80 = HIGH investor appeal (low down payment, strong cash-on-cash return)
+- 20-30-40-10 = MEDIUM (staged payments, requires milestone monitoring)
+- 90-10 = LOW (maximum capital upfront, highest execution risk)
+
+### Scheme Naming Convention
+
+Scheme names encode the installment percentages in stage order:
+
+```
+"20-80"       → 20% at signing, 80% at Act 16
+"30-30-40"    → 30% at signing, 30% at Act 14, 40% at Act 16
+"20-30-40-10" → 20% at signing, 30% at Act 14, 40% at Act 15, 10% at Act 16
+```
+
+The first number is always the signing percentage. The last number is always the Act 16 percentage. Middle numbers fill in Act 14, then Act 15 (in that order). The canonical parsing implementation is `parseSchemeNameToInstallments` in `lib/payment/parseScheme.ts`.
+
+### Default Scheme Enforcement
+
+The database enforces exactly one default scheme per project via a partial unique index:
+
+```sql
+CREATE UNIQUE INDEX ON project_payment_schemes (project_id)
+WHERE is_default = true;
+```
+
+This means the DB will reject any insert or update that would create a second default for the same project. Application code does not need (and should not implement) its own "set all others to false" guard — the constraint is atomic and race-safe.
+
+### UI State Pattern: PaymentSchemesPanel Owns Its Own Schemes
+
+`PaymentSchemesPanel` fetches schemes from the DB directly, keyed on `projectId` — it does NOT receive schemes as props from the parent form. This avoids a prop-cycle race: when a new project is saved, the parent sets `projectId` state and begins a reload. If schemes were passed as props, the panel would see the new `projectId` before the parent's reload completed, resulting in an empty or stale scheme list.
+
+Rule: any component managing a child entity linked by FK should own its own fetch rather than receive the list from a reloading parent.
+
+**Implementation files:**
+- `lib/supabase/server-queries.ts` — `getAllSchemesByProjectServer()` bulk fetch
+- `lib/supabase/projectPaymentSchemes.ts` — full CRUD for payment schemes
+- `lib/payment/parseScheme.ts` — scheme name ↔ installments conversion (single source of truth)
+- `lib/ai/searchHelpers.ts` — `buildSchemesBlock()`, `buildProjectContext()`, `buildContextBlock()`
+- `app/api/search/route.ts` — fetches schemes after projects load, passes to context builder and result resolver
+- `app/(protected)/search/SearchPage.helpers.tsx` — `PaymentSchemesDisplay` and `SchemeChip` render scheme chips on result cards
+
+---
+
 *This document captures domain knowledge that isn't obvious from the code. Keep it updated as business rules evolve.*
