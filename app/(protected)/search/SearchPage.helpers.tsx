@@ -67,6 +67,7 @@ function UnitSummary({ result }: UnitSummaryProps) {
   if (unit.floor           !== null) parts.push(`Floor ${unit.floor}`)
   if (unit.total_area      !== null) parts.push(formatArea(unit.total_area))
   if (unit.direction)                parts.push(unit.direction)
+  if (unit.bedrooms        !== null) parts.push(`${unit.bedrooms} bed${unit.bedrooms !== 1 ? 's' : ''}`)
   if (unit.total_price_vat !== null) parts.push(formatPrice(unit.total_price_vat, project.currency))
 
   if (parts.length === 0) return null

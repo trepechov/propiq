@@ -44,6 +44,7 @@ Each unit object must use EXACTLY these field names (snake_case):
   total_price_vat   (number or null — total unit price, VAT inclusive)
   direction         (string or null — MUST be one of exactly: "south", "north", "east", "west",
                      "south_east", "south_west", "north_east", "north_west" — or null if unknown)
+  bedrooms          (number or null — number of bedrooms; 0 for studio, null if not applicable or unknown)
   status            (string — MUST be one of exactly: "available", "booked", "sold")
   notes             (string or null — any additional notes)
   ai_summary        (string or null — 1-2 sentence factual summary of this unit)

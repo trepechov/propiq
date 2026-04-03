@@ -82,6 +82,12 @@ export const SEARCH_UNIT_FILTER_CONFIGS: FilterConfig<Unit>[] = [
     placeholder: 'exact floor',
   },
   {
+    type: 'exactNumber',
+    field: 'bedrooms',
+    label: 'Bedrooms',
+    placeholder: 'e.g. 2',
+  },
+  {
     type: 'maxNumber',
     field: 'net_area',
     label: 'Max Net Area',

@@ -159,6 +159,7 @@ export function buildProjectContext(
       u.floor          !== null ? `floor ${u.floor}` : null,
       u.total_area     !== null ? `${u.total_area} m²` : null,
       u.direction                ? u.direction : null,
+      u.bedrooms !== null        ? `${u.bedrooms}BR` : null,
       u.total_price_vat !== null ? `${u.total_price_vat.toLocaleString()} ${project.currency ?? ''}` : null,
       `(ID: ${u.id})`,
     ]

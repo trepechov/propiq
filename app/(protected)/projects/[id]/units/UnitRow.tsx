@@ -81,6 +81,7 @@ export function UnitsTableHead({
         {col('price_sqm_vat', priceSqmHeader, 'right')}
         {col('total_price_vat', totalPriceHeader, 'right')}
         {col('direction', 'Direction')}
+        {col('bedrooms', 'Beds', 'right')}
         {col('status', 'Status')}
         <TableCell>Notes</TableCell>
         <TableCell align="right">Actions</TableCell>
@@ -124,6 +125,7 @@ export default function UnitRow({
       <TableCell align="right">{formatPrice(displayPriceSqm)}</TableCell>
       <TableCell align="right">{formatPrice(displayTotalPrice)}</TableCell>
       <TableCell>{directionLabel}</TableCell>
+      <TableCell align="right">{formatNumber(unit.bedrooms)}</TableCell>
       <TableCell>{statusLabel}</TableCell>
       <TableCell sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {unit.notes ?? '—'}

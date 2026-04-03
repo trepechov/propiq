@@ -96,6 +96,12 @@ export function buildUnitFilterConfigs(): FilterConfig<Unit>[] {
       options: Object.entries(UNIT_DIRECTION_LABELS).map(([value, label]) => ({ value, label })),
     },
     {
+      type: 'exactNumber',
+      field: 'bedrooms',
+      label: 'Bedrooms',
+      placeholder: 'e.g. 2',
+    },
+    {
       type: 'enum',
       field: 'status',
       label: 'Status',

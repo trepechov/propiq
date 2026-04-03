@@ -37,6 +37,7 @@ export interface Unit {
   total_price_vat: number | null
   // Characteristics
   direction: UnitDirection | null
+  bedrooms: number | null
   status: UnitStatus
   // Notes
   notes: string | null
@@ -69,6 +70,7 @@ export const unitSchema = z.object({
   total_price_vat: z.number().nullable().default(null),
   // Characteristics
   direction: z.enum(Object.values(UnitDirection) as [string, ...string[]]).nullable().default(null),
+  bedrooms: z.number().int().nullable().default(null),
   status: z.enum(Object.values(UnitStatus) as [string, ...string[]]),
   // Notes
   notes: z.string().nullable().default(null),

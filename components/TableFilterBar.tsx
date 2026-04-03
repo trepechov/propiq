@@ -154,7 +154,7 @@ function EnumSelect<T>({ config, selected, onChange }: EnumSelectProps<T>) {
       value={selected}
       onChange={handleChange}
       renderValue={renderValue}
-      sx={{ minWidth: 150 }}
+      sx={{ minWidth: 140 }}
     >
       {config.options.map(opt => (
         <MenuItem key={opt.value} value={opt.value}>
