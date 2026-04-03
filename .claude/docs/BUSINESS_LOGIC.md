@@ -181,6 +181,28 @@ PENDING → CONFIRMED → SHIPPED → DELIVERED
 
 ---
 
+## Unit Bedroom Count
+
+Studios use `bedrooms = 0`; garages, parking spaces, and storage units leave `bedrooms = null` (bedroom count is not applicable for these types).
+
+**Investor vs. family buyer preferences:**
+- Small yield-focused investors prefer studios and 1-bed units: lower entry price, easier to rent, higher yield relative to price
+- Families purchasing for own use prefer 2+ bedrooms
+
+**AI search guidance:**
+If a query mentions "family", "kids", or "own use", the AI should prefer units with `bedrooms >= 2`. If the query mentions "investor" or "yield", the AI should consider smaller units (0–1 bedrooms). Bedroom count appears in the unit context line (e.g. `2BR`) so Gemini can reason about it during NL search.
+
+**Implementation files:**
+- `types/unit.ts` — `bedrooms: number | null` field + `z.number().int().nullable()` Zod schema
+- `app/api/extract/units/route.ts` — extraction prompt includes `bedrooms` field instruction
+- `app/(protected)/projects/[id]/units/UnitRow.tsx` — Beds column in units table (sortable)
+- `app/(protected)/projects/[id]/UnitsPage.helpers.ts` — `exactNumber` filter config
+- `app/(protected)/search/SearchPage.filterConfigs.ts` — `exactNumber` filter in search pre-filter
+- `lib/ai/searchHelpers.ts` — `${u.bedrooms}BR` appended to unit context line
+- `app/(protected)/search/SearchPage.helpers.tsx` — `UnitSummary` shows bedroom count in result cards
+
+---
+
 ## Payment Schemes in AI Search
 
 Each project has one default payment scheme and optionally multiple alternative schemes.

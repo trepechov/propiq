@@ -233,7 +233,7 @@ export default function SearchPage() {
           onClick={handleSearch}
           disabled={loading || query.trim().length === 0}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
-          sx={{ alignSelf: 'flex-start', px: 4 }}
+          sx={{ alignSelf: 'center', px: 4 }}
         >
           {loading ? 'Searching…' : 'Find Opportunities'}
         </Button>
