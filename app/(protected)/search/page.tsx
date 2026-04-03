@@ -4,15 +4,16 @@
  * Opportunity Search page — /search
  *
  * User types a natural language query describing their investment criteria.
- * In Phase 3, Gemini evaluates all stored projects + available units against
- * the query and returns matching and non-matching opportunities.
+ * Gemini evaluates stored projects + available units against the query and
+ * returns matching and non-matching opportunities.
  *
- * In Phase 4 (current), the /api/search endpoint is a stub returning 501.
- * The page handles this gracefully by showing a "Search not yet available"
- * message rather than crashing.
+ * Pre-filter panel (collapsed by default): users can narrow the project/unit
+ * dataset before the AI sees it. When pre-filter is disabled, all data is sent
+ * (legacy behaviour preserved). When enabled, only filtered IDs are sent to
+ * the route handler; the server re-enforces AVAILABLE status independently.
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Alert,
   Box,
@@ -23,8 +24,20 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import SearchIcon from '@mui/icons-material/Search'
 import { ResultsColumn, MatchType } from './SearchPage.helpers'
 import type { SearchResult } from './SearchPage.helpers'
+import SearchPreFilterPanel from './SearchPreFilterPanel'
+import {
+  buildSearchProjectFilterConfigs,
+  SEARCH_UNIT_FILTER_CONFIGS,
+} from './SearchPage.filterConfigs'
+import { useTableFilter } from '@/hooks/useTableFilter'
+import { getProjects } from '@/lib/supabase/projects'
+import { getAllUnits } from '@/lib/supabase/units'
+import { getNeighborhoods } from '@/lib/supabase/neighborhoods'
+import type { Project, Neighborhood } from '@/types'
+import type { Unit } from '@/types/unit'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -35,15 +48,84 @@ function formatDuration(ms: number): string {
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function SearchPage() {
+  // ── Query state ─────────────────────────────────────────────────────────────
   const [query,   setQuery]   = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [notice,  setNotice]  = useState<string | null>(null)
   const [result,  setResult]  = useState<SearchResult | null>(null)
 
+  // ── Pre-filter data state ────────────────────────────────────────────────────
+  const [allProjects,    setAllProjects]    = useState<Project[]>([])
+  const [allUnits,       setAllUnits]       = useState<Unit[]>([])
+  const [neighborhoods,  setNeighborhoods]  = useState<Neighborhood[]>([])
+  const [dataLoading,    setDataLoading]    = useState(true)
+  const [preFilterEnabled, setPreFilterEnabled] = useState(false)
+  const [filterExpanded, setFilterExpanded] = useState(false)
+
+  function handlePreFilterEnabledChange(enabled: boolean) {
+    setPreFilterEnabled(enabled)
+    if (enabled) setFilterExpanded(true)
+  }
+
+  // ── Load data on mount ───────────────────────────────────────────────────────
+  useEffect(() => {
+    Promise.all([getProjects(), getAllUnits(), getNeighborhoods()])
+      .then(([projects, units, hoods]) => {
+        setAllProjects(projects)
+        setAllUnits(units)
+        setNeighborhoods(hoods)
+      })
+      .catch(() => {
+        // Non-fatal — pre-filter simply won't populate; search still works
+      })
+      .finally(() => setDataLoading(false))
+  }, [])
+
+  // ── Project filter ───────────────────────────────────────────────────────────
+  const projectFilterConfigs = useMemo(
+    () => buildSearchProjectFilterConfigs(neighborhoods),
+    [neighborhoods],
+  )
+
+  const {
+    filterState:    projectFilterState,
+    setTextFilter:  setProjectText,
+    setEnumFilter:  setProjectEnum,
+    setNumberFilter: setProjectNumber,
+    setDateFilter:  setProjectDate,
+    clearFilters:   clearProjectFilters,
+    isFiltered:     isProjectFiltered,
+    filteredRows:   filteredProjects,
+  } = useTableFilter(allProjects, projectFilterConfigs)
+
+  // ── Unit filter (cascades within project-filtered set) ───────────────────────
+  const projectFilteredUnits = useMemo(() => {
+    const projectIdSet = new Set(filteredProjects.map((p) => p.id))
+    return allUnits.filter((u) => projectIdSet.has(u.project_id))
+  }, [filteredProjects, allUnits])
+
+  const {
+    filterState:    unitFilterState,
+    setTextFilter:  setUnitText,
+    setEnumFilter:  setUnitEnum,
+    setNumberFilter: setUnitNumber,
+    setDateFilter:  setUnitDate,
+    clearFilters:   clearUnitFilters,
+    isFiltered:     isUnitFiltered,
+    filteredRows:   filteredUnits,
+  } = useTableFilter(projectFilteredUnits, SEARCH_UNIT_FILTER_CONFIGS)
+
+  // ── Search handler ───────────────────────────────────────────────────────────
   async function handleSearch() {
     const trimmed = query.trim()
     if (!trimmed) return
+
+    // Guard: pre-filter enabled but no projects pass the filter
+    if (preFilterEnabled && filteredProjects.length === 0) {
+      setError('Pre-filter matches no projects. Adjust filters or disable pre-filter.')
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -51,16 +133,21 @@ export default function SearchPage() {
     setResult(null)
 
     try {
+      const body: Record<string, unknown> = { query: trimmed }
+      if (preFilterEnabled) {
+        body.projectIds = filteredProjects.map((p) => p.id)
+        body.unitIds    = filteredUnits.map((u) => u.id)
+      }
+
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: trimmed }),
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
-        // 501 from stub or other error — show user-friendly message, don't crash
-        const body = await response.json().catch(() => ({}))
-        const msg = body?.error ?? 'Search is not yet available'
+        const responseBody = await response.json().catch(() => ({}))
+        const msg = responseBody?.error ?? 'Search is not yet available'
         if (response.status === 501) {
           setNotice(msg)
         } else {
@@ -84,6 +171,16 @@ export default function SearchPage() {
     }
   }
 
+  // ── Stats bar meta text ──────────────────────────────────────────────────────
+  function buildStatsText(): string {
+    if (!result) return ''
+    const base = `${formatDuration(result.meta.durationMs)} · ${result.meta.tokens.toLocaleString()} tokens · ${result.matching.length} matching, ${result.nonMatching.length} non-matching`
+    if (preFilterEnabled) {
+      return `${base} · Pre-filtered: ${filteredProjects.length} projects, ${filteredUnits.length} units`
+    }
+    return base
+  }
+
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Page header */}
@@ -91,8 +188,35 @@ export default function SearchPage() {
         Opportunity Search
       </Typography>
 
-      {/* Query input */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={3}>
+      {/* Pre-filter panel */}
+      <SearchPreFilterPanel
+        preFilterEnabled={preFilterEnabled}
+        onPreFilterEnabledChange={handlePreFilterEnabledChange}
+        expanded={filterExpanded}
+        onExpandedChange={setFilterExpanded}
+        projectFilterConfigs={projectFilterConfigs}
+        projectFilterState={projectFilterState}
+        onProjectTextChange={setProjectText}
+        onProjectEnumChange={setProjectEnum}
+        onProjectNumberChange={setProjectNumber}
+        onProjectDateChange={setProjectDate}
+        onProjectClear={clearProjectFilters}
+        isProjectFiltered={isProjectFiltered}
+        unitFilterConfigs={SEARCH_UNIT_FILTER_CONFIGS}
+        unitFilterState={unitFilterState}
+        onUnitTextChange={setUnitText}
+        onUnitEnumChange={setUnitEnum}
+        onUnitNumberChange={setUnitNumber}
+        onUnitDateChange={setUnitDate}
+        onUnitClear={clearUnitFilters}
+        isUnitFiltered={isUnitFiltered}
+        projectCount={filteredProjects.length}
+        unitCount={filteredUnits.length}
+        dataLoading={dataLoading}
+      />
+
+      {/* Query input + search button */}
+      <Stack spacing={1.5} mb={3}>
         <TextField
           fullWidth
           multiline
@@ -105,29 +229,23 @@ export default function SearchPage() {
         />
         <Button
           variant="contained"
+          size="large"
           onClick={handleSearch}
           disabled={loading || query.trim().length === 0}
-          sx={{ alignSelf: { sm: 'flex-start' }, mt: { sm: '0 !important' }, whiteSpace: 'nowrap', px: 3 }}
+          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
+          sx={{ alignSelf: 'flex-start', px: 4 }}
         >
-          Find Opportunities
+          {loading ? 'Searching…' : 'Find Opportunities'}
         </Button>
       </Stack>
 
-      {/* Loading */}
-      {loading && (
-        <Box display="flex" justifyContent="center" py={8}>
-          <CircularProgress />
-        </Box>
-      )}
-
       {notice && <Alert severity="info" sx={{ mb: 2 }}>{notice}</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error  && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Stats bar */}
       {result && !loading && (
         <Alert severity="info" sx={{ py: 0, mb: 2 }}>
-          {formatDuration(result.meta.durationMs)} · {result.meta.tokens.toLocaleString()} tokens ·{' '}
-          {result.matching.length} matching, {result.nonMatching.length} non-matching
+          {buildStatsText()}
         </Alert>
       )}
 

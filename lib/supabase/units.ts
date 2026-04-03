@@ -9,6 +9,25 @@ import { createClient } from './client'
 import type { Unit, UnitInsert } from '../../types'
 
 /**
+ * Returns all units across all projects, ordered by floor then apartment_number.
+ * Used by the search page pre-filter — includes all statuses so the user can
+ * filter by status in the pre-filter UI.
+ * Note: the server always re-enforces AVAILABLE status when building AI context,
+ * so non-available unit IDs sent to the search API are silently ignored.
+ */
+export async function getAllUnits(): Promise<Unit[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('units')
+    .select('*')
+    .order('floor')
+    .order('apartment_number')
+
+  if (error) throw new Error(`getAllUnits failed: ${error.message}`)
+  return data
+}
+
+/**
  * Returns all units for a project ordered by floor then apartment_number.
  * Always scoped to a project — loading all units globally has no use case.
  */

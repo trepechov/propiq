@@ -50,9 +50,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Parse body
   let query: string
+  let projectIds: string[] | undefined
+  let unitIds: string[] | undefined
   try {
     const body = await request.json()
-    query = body?.query
+    query      = body?.query
+    projectIds = Array.isArray(body?.projectIds) ? body.projectIds : undefined
+    unitIds    = Array.isArray(body?.unitIds)    ? body.unitIds    : undefined
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
@@ -71,17 +75,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       getUserCriteria(supabase, user.id, 'evaluation_criteria', EVALUATION_CRITERIA),
     ])
 
+    // Apply pre-filter restriction when the client sends explicit ID lists.
+    // Server still re-enforces AVAILABLE status inside buildUnitMaps — client IDs
+    // are treated as an allowlist, not a bypass of business rules.
+    const activeProjects = projectIds
+      ? projects.filter((p) => projectIds.includes(p.id))
+      : projects
+    const activeUnits = unitIds
+      ? allUnits.filter((u) => unitIds.includes(u.id))
+      : allUnits
+
     // Fetch all schemes for context — done after projects so we have their IDs.
     // Separate from the parallel block above to avoid the chicken-and-egg problem.
-    const schemesByProject = await getAllSchemesByProjectServer(projects.map((p) => p.id))
+    const schemesByProject = await getAllSchemesByProjectServer(activeProjects.map((p) => p.id))
 
     // Build lookup maps
-    const projectMap = buildProjectMap(projects)
-    const { unitsByProject, unitMap } = buildUnitMaps(projects, allUnits)
+    const projectMap = buildProjectMap(activeProjects)
+    const { unitsByProject, unitMap } = buildUnitMaps(activeProjects, activeUnits)
 
     // Build prompt
-    const contextBlock    = buildContextBlock(projects, unitsByProject, schemesByProject)
-    const feedbackContext = buildFeedbackContext(feedback, projects)
+    const contextBlock    = buildContextBlock(activeProjects, unitsByProject, schemesByProject)
+    const feedbackContext = buildFeedbackContext(feedback, activeProjects)
 
     const prompt = [
       queryContext,

@@ -247,4 +247,46 @@ Rule: any component managing a child entity linked by FK should own its own fetc
 
 ---
 
+## Search Pre-Filter
+
+The search page supports an optional client-side pre-filter that narrows the project/unit
+dataset before the AI receives it. The feature is opt-in — the "Enable pre-filter" checkbox
+defaults to unchecked, preserving the original full-dataset behaviour.
+
+### Rules
+
+| Rule | Rationale |
+|------|-----------|
+| Pre-filter is client-side only | The server receives explicit ID lists, not filter state. The server never replicates client filter logic. |
+| Unit filter cascades within project-filtered set | `projectFilteredUnits` is computed as `allUnits.filter(u => filteredProjectIdSet.has(u.project_id))`. This is the `rows` prop passed to the unit `useTableFilter`, so unit filters automatically scope to matching projects. |
+| Server re-enforces AVAILABLE status | `buildUnitMaps` filters to `UnitStatus.AVAILABLE` regardless of which unit IDs the client sent. A malicious or stale client cannot inject non-available units into the AI prompt. |
+| No status filter in unit filter bar | `getAllAvailableUnits()` only returns AVAILABLE units. A status filter would always show 100% of rows and mislead users — it is intentionally omitted from `SEARCH_UNIT_FILTER_CONFIGS`. |
+| Empty projectIds guard | If `preFilterEnabled && filteredProjects.length === 0`, `handleSearch` returns early with an error. Sending an empty `projectIds: []` would produce a blank AI prompt and a useless (and token-wasting) response. |
+
+### Data Flow
+
+```
+1. Mount: Promise.all([getProjects(), getAllAvailableUnits(), getNeighborhoods()])
+2. User filters: useTableFilter(allProjects, projectConfigs) → filteredProjects
+3.               useMemo: allUnits.filter(u => projectIdSet.has(u.project_id)) → projectFilteredUnits
+4.               useTableFilter(projectFilteredUnits, unitConfigs) → filteredUnits
+5. Search click:
+   a. Guard: filteredProjects.length === 0 → error, abort
+   b. body.projectIds = filteredProjects.map(p => p.id)
+   c. body.unitIds    = filteredUnits.map(u => u.id)
+6. Server: projects.filter(p => projectIds.includes(p.id)) → activeProjects
+           allUnits.filter(u => unitIds.includes(u.id))    → activeUnits
+7. Server: buildUnitMaps(activeProjects, activeUnits) — re-enforces AVAILABLE
+```
+
+### Implementation files
+
+- `lib/supabase/units.ts` — `getAllAvailableUnits()` (browser client, AVAILABLE only)
+- `app/api/search/route.ts` — parses `projectIds`/`unitIds`, applies allowlist filter
+- `app/(protected)/search/SearchPage.filterConfigs.ts` — `buildSearchProjectFilterConfigs()`, `SEARCH_UNIT_FILTER_CONFIGS`
+- `app/(protected)/search/SearchPreFilterPanel.tsx` — collapsible panel UI
+- `app/(protected)/search/page.tsx` — state, hooks, guard, body construction
+
+---
+
 *This document captures domain knowledge that isn't obvious from the code. Keep it updated as business rules evolve.*
